@@ -11,17 +11,10 @@ import {
     HeartHandshake,
     ShieldCheck,
 } from "lucide-react";
-import {listItems} from "@/lib/items";
+import {demoItems} from "@/lib/demo";
 import {ItemCard} from "@/components/item-card";
-export const dynamic = "force-dynamic";
-export default async function Home() {
-    let items: Awaited<ReturnType<typeof listItems>> = [];
-    let unavailable = false;
-    try {
-        items = (await listItems()).slice(0, 3);
-    } catch {
-        unavailable = true;
-    }
+export default function Home() {
+    const items = demoItems.slice(0, 3);
     return (
         <>
             <section className="hero container">
@@ -148,25 +141,12 @@ export default async function Home() {
                         Browse all items <ArrowRight size={17} />
                     </Link>
                 </div>
-                {unavailable ? (
-                    <div className="empty-state">
-                        <h3>The community board is temporarily unavailable.</h3>
-                        <p>Please check back shortly.</p>
-                    </div>
-                ) : items.length ? (
+
                     <div className="item-grid">
                         {items.map((item) => (
                             <ItemCard key={item.id} item={item} />
                         ))}
                     </div>
-                ) : (
-                    <div className="empty-state">
-                        <h3>Every community starts with one report.</h3>
-                        <Link href="/report" className="text-link">
-                            Report the first item <ArrowRight size={16} />
-                        </Link>
-                    </div>
-                )}
             </section>
             <section className="how-section">
                 <div className="container">

@@ -10,6 +10,7 @@ import {
     ImagePlus,
 } from "lucide-react";
 import {categories} from "@/lib/types";
+import {saveItem} from "@/lib/store";
 export function ReportForm() {
     const params = useSearchParams();
     const [type, setType] = useState(
@@ -22,21 +23,22 @@ export function ReportForm() {
         event.preventDefault();
         setBusy(true);
         setError("");
-        const payload = {
-            ...Object.fromEntries(new FormData(event.currentTarget)),
-            type,
-        };
+        const form = event.currentTarget;
+        const payload = Object.fromEntries(new FormData(form)) as Record<string, string>;
         try {
-            const res = await fetch("/api/items", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(payload),
+            const item = saveItem({
+                title: payload.title,
+                type: type as "LOST" | "FOUND",
+                category: payload.category as (typeof categories)[number],
+                description: payload.description,
+                location: payload.location,
+                eventDate: payload.eventDate,
+                contactEmail: payload.contactEmail,
+                imageUrl: payload.imageUrl,
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            router.push(`/items/${data.item.id}?created=1`);
-        } catch (e) {
-            setError((e as Error).message);
+            router.push(`/items/${item.id}?created=1`);
+        } catch {
+            setError("Your browser could not save this report. Check that local storage is available and try again.");
             setBusy(false);
         }
     }

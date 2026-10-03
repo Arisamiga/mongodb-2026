@@ -3,9 +3,7 @@ import Link from "next/link";
 import {ArrowUpRight, Heart} from "lucide-react";
 import {Brand} from "@/components/brand";
 import {Nav} from "@/components/nav";
-import {isDemo} from "@/lib/items";
 import "./globals.css";
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
     title: {
@@ -24,12 +22,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                     Skip to content
                 </a>
                 <Nav />
-                {isDemo() && (
-                    <div className="demo-bar">
-                        Demo workspace · Sample listings and reports are stored
-                        locally.
-                    </div>
-                )}
                 <main id="main">{children}</main>
                 <footer>
                     <div className="container footer-top">
@@ -44,8 +36,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                     <div className="container footer-bottom">
                         <span>© {new Date().getFullYear()} Boomerang</span>
                         <span>
-                            Built for community, with <Heart size={12} /> and
-                            MongoDB.
+                            Built for community, with <Heart size={12} />.
                         </span>
                     </div>
                 </footer>

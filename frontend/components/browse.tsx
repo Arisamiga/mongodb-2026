@@ -2,40 +2,23 @@
 import {useEffect, useState} from "react";
 import {Search, SlidersHorizontal, ArrowRight, X} from "lucide-react";
 import Link from "next/link";
-import {categories, type PublicItem} from "@/lib/types";
+import {categories, type Item} from "@/lib/types";
+import {findItems} from "@/lib/store";
 import {ItemCard} from "./item-card";
 export function Browse() {
     const [q, setQ] = useState("");
     const [type, setType] = useState("");
     const [category, setCategory] = useState("");
-    const [items, setItems] = useState<PublicItem[]>([]);
+    const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [retry, setRetry] = useState(0);
+
     useEffect(() => {
-        const controller = new AbortController();
-        setLoading(true);
-        const timeout = setTimeout(async () => {
-            setError("");
-            try {
-                const res = await fetch(
-                    `/api/items?${new URLSearchParams({q, type, category})}`,
-                    {signal: controller.signal},
-                );
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                setItems(data.items);
-            } catch (e) {
-                if (!controller.signal.aborted) setError((e as Error).message);
-            } finally {
-                if (!controller.signal.aborted) setLoading(false);
-            }
-        }, 250);
-        return () => {
-            clearTimeout(timeout);
-            controller.abort();
-        };
-    }, [q, type, category, retry]);
+        const timeout = setTimeout(() => {
+            setItems(findItems({q, type, category}));
+            setLoading(false);
+        }, 200);
+        return () => clearTimeout(timeout);
+    }, [q, type, category]);
     return (
         <>
             <div className="filters">
@@ -94,47 +77,23 @@ export function Browse() {
                         : `${items.length} ${items.length === 1 ? "item" : "items"}`}
                 </span>
             </div>
-            {error ? (
-                <div className="empty-state" role="alert">
-                    <h3>We couldn’t load the board.</h3>
-                    <p>{error}</p>
-                    <button
-                        className="button secondary"
-                        onClick={() => setRetry(retry + 1)}
-                    >
-                        Try again
-                    </button>
-                </div>
-            ) : loading ? (
+            {loading ? (
                 <div className="item-grid" aria-label="Loading items">
-                    {[1, 2, 3].map((n) => (
-                        <div key={n} className="skeleton" />
-                    ))}
+                    {[1, 2, 3].map((n) => <div key={n} className="skeleton" />)}
                 </div>
             ) : items.length ? (
                 <div className="item-grid">
-                    {items.map((item) => (
-                        <ItemCard item={item} key={item.id} />
-                    ))}
+                    {items.map((item) => <ItemCard item={item} key={item.id} />)}
                 </div>
             ) : (
                 <div className="empty-state">
                     <Search size={34} />
                     <h3>No items found just yet.</h3>
                     <p>Try a broader search or share your own report.</p>
-                    <button
-                        className="button secondary"
-                        onClick={() => {
-                            setQ("");
-                            setCategory("");
-                            setType("");
-                        }}
-                    >
+                    <button className="button secondary" onClick={() => { setQ(""); setCategory(""); setType(""); }}>
                         Clear filters
                     </button>
-                    <Link className="text-link" href="/report">
-                        Report an item <ArrowRight size={16} />
-                    </Link>
+                    <Link className="text-link" href="/report">Report an item <ArrowRight size={16} /></Link>
                 </div>
             )}
         </>
