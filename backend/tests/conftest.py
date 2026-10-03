@@ -27,7 +27,8 @@ class FakeAIClient:
         text = f"{title} {description}".casefold()
         return [0.0, 1.0] if "umbrella" in text else [1.0, 0.0]
 
-    def find_matches(self, item_id):
+    def find_matches(self, report):
+        item_id = str(report["_id"])
         self.match_calls.append(item_id)
         item = self.database.items.find_one({"_id": item_id})
         if item is None and ObjectId.is_valid(item_id):

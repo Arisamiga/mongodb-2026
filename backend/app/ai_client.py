@@ -8,6 +8,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.config import Settings
+from app.schemas import ItemOut
 
 
 class AIServiceError(Exception):
@@ -65,10 +66,33 @@ class AIClient:
         except ValidationError:
             raise AIServiceError() from None
 
-    def find_matches(self, item_id: str) -> list[Match]:
-        if not isinstance(item_id, str) or not 1 <= len(item_id) <= 100:
+    def find_matches(self, item: dict) -> list[Match]:
+        item_id = str(item["_id"])
+        if not 1 <= len(item_id) <= 100:
             raise ValueError("item_id must be a string of 1 to 100 characters")
-        response = self._post(self._matches_path, {"itemId": item_id})
+        report = ItemOut.model_validate(
+            {
+                **item,
+                "_id": item_id,
+                "userId": str(item["userId"]),
+            }
+        ).model_dump(mode="json")
+        payload = {
+            "itemId": item_id,
+            **{
+                field: report[field]
+                for field in (
+                    "type",
+                    "title",
+                    "description",
+                    "category",
+                    "eventDate",
+                    "userId",
+                )
+            },
+            "location": {"coordinates": report["location"]["coordinates"]},
+        }
+        response = self._post(self._matches_path, payload)
         try:
             return _MatchesResponse.model_validate(response).matches
         except ValidationError:

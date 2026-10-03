@@ -46,8 +46,19 @@ Authorization: Bearer <AI_SERVICE_TOKEN>  # only when configured
 ```
 
 ```json
-{"itemId":"6d3c1f0e-4ccf-4f31-a15a-f5131f7031db"}
+{
+  "itemId": "6d3c1f0e-4ccf-4f31-a15a-f5131f7031db",
+  "type": "lost",
+  "title": "Blue backpack",
+  "description": "Blue canvas backpack left in the library.",
+  "category": "Bags",
+  "location": {"coordinates": [-0.12, 51.5]},
+  "eventDate": "2026-10-03T12:30:00Z",
+  "userId": "report-owner-id"
+}
 ```
+
+Each comparison sends the saved report's type (which selects the opposite search side), title and description (embedding text), category (category score), longitude-first coordinates (location score), timezone-qualified event date/time (time score), and authenticated owner's identifier (exclude their own reports). `itemId` is retained for correlation with the stored report. BSON dates are serialized to ISO 8601 for HTTP JSON; the database still stores real dates. Coordinates come from the configured campus dropdown, and `userId` comes from the account rather than client input. Image bytes, image URLs, embeddings, and account details are not sent in this request. Endpoint paths and response format still need confirmation from the teammate.
 
 Expected success response:
 

@@ -21,9 +21,24 @@ def test_http_embedding_save_match_and_private_chat(db, settings):
             )
             return httpx.Response(200, json={"embedding": [0.1, 0.2, 0.3]})
         assert request.url.path == "/matches"
-        assert set(payload) == {"itemId"}
+        assert set(payload) == {
+            "itemId",
+            "type",
+            "title",
+            "description",
+            "category",
+            "location",
+            "eventDate",
+            "userId",
+        }
         report = db.items.find_one({"_id": payload["itemId"]})
         assert report is not None and report["embedding"] == [0.1, 0.2, 0.3]
+        for field in ("type", "title", "description", "category", "userId"):
+            assert payload[field] == report[field]
+        assert payload["location"] == {"coordinates": report["location"]["coordinates"]}
+        from datetime import datetime
+
+        assert datetime.fromisoformat(payload["eventDate"]) == report["eventDate"]
         candidates = db.items.find({"type": {"$ne": report["type"]}})
         return httpx.Response(
             200,

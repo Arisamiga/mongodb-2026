@@ -96,7 +96,7 @@ def run_matching(app, item):
     if item["status"] != "open":
         return []
     opposite = "found" if item["type"] == "lost" else "lost"
-    matches = app.state.ai_client.find_matches(str(item["_id"]))
+    matches = app.state.ai_client.find_matches(item)
     accepted = []
     seen = set()
     for match in sorted(matches, key=lambda match: match.score, reverse=True):

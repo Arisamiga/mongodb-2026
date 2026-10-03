@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timezone
+
 import httpx
 import pytest
 
@@ -19,6 +22,23 @@ def client_for(handler, *, token="test-token"):
     return AIClient(settings, transport=httpx.MockTransport(handler))
 
 
+def report(item_id="lost-1"):
+    return {
+        "_id": item_id,
+        "type": "lost",
+        "title": "Blue bag",
+        "description": "Left at the library",
+        "category": "Bags",
+        "location": {"name": "Library", "coordinates": [-0.12, 51.5]},
+        "eventDate": datetime(2026, 10, 3, 12, 30, tzinfo=timezone.utc),
+        "createdAt": datetime(2026, 10, 3, 13, tzinfo=timezone.utc),
+        "status": "open",
+        "userId": "owner-1",
+        "embedding": [0.1, 0.2],
+        "images": ["/items/report/images/private"],
+    }
+
+
 def test_create_embedding_posts_contract_and_parses_embedding():
     def handler(request):
         assert request.method == "POST"
@@ -34,10 +54,19 @@ def test_create_embedding_posts_contract_and_parses_embedding():
         client.close()
 
 
-def test_find_matches_posts_item_id_and_returns_match_models():
+def test_find_matches_posts_comparison_fields_and_returns_match_models():
     def handler(request):
         assert request.url == "https://ai.example.test/api/matches"
-        assert request.read() == b'{"itemId":"lost-1"}'
+        assert json.loads(request.content) == {
+            "itemId": "lost-1",
+            "type": "lost",
+            "title": "Blue bag",
+            "description": "Left at the library",
+            "category": "Bags",
+            "location": {"coordinates": [-0.12, 51.5]},
+            "eventDate": "2026-10-03T12:30:00Z",
+            "userId": "owner-1",
+        }
         return httpx.Response(
             200,
             json={
@@ -48,7 +77,7 @@ def test_find_matches_posts_item_id_and_returns_match_models():
 
     client = client_for(handler, token=None)
     try:
-        matches = client.find_matches("lost-1")
+        matches = client.find_matches(report())
         assert matches == [Match(itemId="found-1", score=0.91)]
     finally:
         client.close()
@@ -85,7 +114,7 @@ def test_timeout_is_sanitized():
     client = client_for(handler)
     try:
         with pytest.raises(AIServiceError) as error:
-            client.find_matches("lost-1")
+            client.find_matches(report())
         assert str(error.value) == "AI service request failed"
         assert "private timeout detail" not in str(error.value)
     finally:
@@ -114,7 +143,7 @@ def test_find_matches_rejects_invalid_response(matches):
     client = client_for(lambda request: response)
     try:
         with pytest.raises(AIServiceError):
-            client.find_matches("lost-1")
+            client.find_matches(report())
     finally:
         client.close()
 
@@ -123,7 +152,7 @@ def test_find_matches_rejects_missing_matches_field():
     client = client_for(lambda request: httpx.Response(200, json={"result": []}))
     try:
         with pytest.raises(AIServiceError):
-            client.find_matches("lost-1")
+            client.find_matches(report())
     finally:
         client.close()
 
@@ -135,7 +164,7 @@ def test_find_matches_rejects_invalid_input_without_request():
     client = client_for(unexpected_request)
     try:
         with pytest.raises(ValueError):
-            client.find_matches("x" * 101)
+            client.find_matches(report("x" * 101))
     finally:
         client.close()
 
