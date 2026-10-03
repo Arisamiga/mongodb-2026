@@ -1,14 +1,16 @@
 "use client";
 import {useState} from "react";
 import {useSearchParams} from "next/navigation";
+import Link from "next/link";
 import {
     ArrowRight,
     LoaderCircle,
     ShieldCheck,
     CheckCircle2,
 } from "lucide-react";
-import {categories} from "@/lib/types";
-import {saveItem} from "@/lib/store";
+import {categories, type Item} from "@/lib/types";
+import {api} from "@/lib/api";
+import {useSession} from "@/components/session-provider";
 import {LocationInput} from "@/components/location-input";
 import {PhotoInput} from "@/components/photo-input";
 export function ReportForm() {
@@ -18,9 +20,10 @@ export function ReportForm() {
 }
 
 function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
+    const {user, loading} = useSession();
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
+    const [submitted, setSubmitted] = useState<Item | null>(null);
     const [photos, setPhotos] = useState<string[]>([]);
     const [photosBusy, setPhotosBusy] = useState(false);
     async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -31,32 +34,49 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
         const form = event.currentTarget;
         const payload = Object.fromEntries(new FormData(form)) as Record<string, string>;
         try {
-            saveItem({
+            const item = await api<Item>("/items", {method: "POST", body: JSON.stringify({
                 title: payload.title,
-                type,
-                category: payload.category as (typeof categories)[number],
+                type: type.toLowerCase(),
+                category: payload.category,
                 description: payload.description,
-                location: payload.location,
-                coordinates: [Number(payload.longitude), Number(payload.latitude)],
-                eventDate: payload.eventDate,
-                contactEmail: payload.contactEmail,
-                imageUrl: photos[0] ?? "",
-                photos,
-            });
-            setSubmitted(true);
-        } catch {
-            setError("Your browser could not save this report. Storage may be full or unavailable. Try removing photos and saving again.");
+                location: {coordinates: [Number(payload.longitude), Number(payload.latitude)]},
+                eventDate: `${payload.eventDate}T00:00:00.000Z`,
+            })});
+            setSubmitted(item);
+            if (photos.length) {
+                for (const [index, photo] of photos.entries()) {
+                    const upload = new FormData();
+                    upload.append("file", await (await fetch(photo)).blob(), `photo-${index + 1}.jpg`);
+                    await api(`/items/${item._id}/images`, {method: "POST", body: upload});
+                }
+            }
+        } catch (error) {
+            setError(error instanceof Error ? error.message : "Your report could not be saved. Please try again.");
+        } finally {
             setBusy(false);
         }
     }
+    if (loading) return <p role="status">Checking your account…</p>;
+    if (!user) return <div className="report-form"><h2>Sign in to publish a report</h2>
+        <p>Your account keeps your reports, photos, and match conversations together.</p>
+        <Link className="button" href={`/account?next=${encodeURIComponent(`/report?type=${type}`)}`}>Sign in or create an account</Link>
+    </div>;
     if (submitted) {
         return (
-            <div className="success-message" role="status">
+            <div><div className="success-message" role="status">
                 <CheckCircle2 size={22} />
                 <div>
                     <strong>Your {type === "LOST" ? "lost" : "found"} report has been saved.</strong>
-                    <span> It is stored in this browser on this device.</span>
+                    <span> {submitted.matchingStatus === "failed"
+                        ? "Matching is currently unavailable. Your report is safely saved; retry from My reports."
+                        : "Matching has been checked. Any qualifying matches appear in Chat."}</span>
                 </div>
+            </div>
+            {busy && <p role="status">Uploading photos…</p>}
+            {error && <p role="alert" className="error-message">Your report is saved, but the photos could not be uploaded: {error} You can retry from the report without publishing a duplicate.</p>}
+            <Link className="button" href={`/items/${submitted._id}`}>View report</Link>{" "}
+            <Link className="button" href="/account">My reports</Link>{" "}
+            <Link className="button" href="/chat">Open chat</Link>
             </div>
         );
     }
@@ -114,23 +134,9 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
                 </label>
                 <PhotoInput photos={photos} onChange={setPhotos} onBusy={setPhotosBusy} />
                 <div className="form-divider" />
-                <label>
-                    Your email
-                    <input
-                        required
-                        type="email"
-                        name="contactEmail"
-                        maxLength={254}
-                        placeholder="you@example.com"
-                    />
-                    <small>
-                        Your email is saved with this report in this browser; it
-                        is not shared online by this frontend.
-                    </small>
-                </label>
+                <p>Publishing as {user.display_name}. Your email is not included in public reports.</p>
                 <label className="consent">
-                    <input type="checkbox" required />I agree to save my email
-                    with this report in this browser.
+                    <input type="checkbox" required />I agree to share these item details and coordinates with signed-in users.
                 </label>
                 {error && (
                     <div role="alert" className="error-message">
@@ -155,7 +161,7 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
                 </button>
                 <p className="form-note">
                     <ShieldCheck size={15} />
-                    No account needed. Just a little community spirit.
+                    Photos are private to you and qualifying match participants.
                 </p>
             </fieldset>
         </form>

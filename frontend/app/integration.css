@@ -1,0 +1,114 @@
+.nav-utilities .account-trigger { min-width: 44px; padding: 4px 9px; }
+.nav-utilities .account-trigger .user-avatar { width: 34px; height: 34px; margin: 0; }
+.account-loading { width: 20px; height: 20px; border: 2px solid var(--line); border-top-color: var(--brand-blue); border-radius: 50%; animation: spin .8s linear infinite; }
+.integration-page { padding-top: clamp(42px, 7vw, 82px); padding-bottom: 76px; }
+.integration-heading { max-width: 720px; margin: 0 auto 30px; text-align: center; }
+.integration-heading .eyebrow { display: inline-block; margin-bottom: 14px; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.integration-heading h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.1; }
+.integration-heading p { margin-top: 14px; color: var(--muted); font-size: 16px; }
+.integration-card { border: 1px solid var(--line); border-radius: 22px; background: #fff; box-shadow: 0 14px 42px #1b304b0c; color: var(--ink); }
+.account-card { width: min(100%, 540px); margin: 0 auto; padding: clamp(22px, 5vw, 38px); }
+.account-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; margin-bottom: 24px; border-radius: 12px; background: #f3f7fa; }
+.account-tabs button { min-height: 42px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 700; }
+.account-tabs button.selected { background: white; color: var(--ink); box-shadow: 0 2px 7px #1b304b12; }
+.integration-form { display: grid; gap: 18px; }
+.integration-form label { display: grid; gap: 8px; color: var(--ink); font-size: 13px; font-weight: 700; }
+.integration-form input, .message-form textarea { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; background: #fbfcfd; color: var(--ink); }
+.integration-form input { min-height: 48px; }
+.integration-form small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.integration-submit { width: 100%; margin-top: 2px; }
+.integration-error, .integration-success { border-radius: 9px; padding: 11px 13px; font-size: 13px; line-height: 1.5; }
+.integration-error { background: #fff0eb; color: #a63a22; }
+.integration-success { background: #eaf8f2; color: #176c4a; }
+.account-summary { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 15px; }
+.account-summary-icon, .chat-empty-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; background: #edf6ff; color: var(--brand-blue); }
+.account-details { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.account-details strong { font-size: 17px; }
+.account-details span { color: var(--muted); font-size: 13px; }
+.account-actions { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: 9px; margin-top: 10px; }
+.account-actions .button { flex: 1 1 auto; min-height: 44px; }
+.account-actions .button.secondary { border-color: var(--line); }
+.my-reports { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.my-reports-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.my-reports-heading h2 { font-size: 19px; }
+.my-reports-heading p { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.reports-filter { display: flex; align-items: center; gap: 10px; margin: 18px 0 12px; color: var(--ink); font-size: 13px; font-weight: 700; }
+.reports-filter select { min-width: 130px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--ink); }
+.reports-empty { padding: 16px 10px; color: var(--muted); font-size: 13px; text-align: center; }
+.report-items { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.report-item-link { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: #fff; color: var(--ink); }
+.report-item-link:hover { border-color: #cce5fa; background: #f7fbff; }
+.report-type-dot { padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+.report-type-dot.lost { background: #fff1f2; color: #b91c1c; }
+.report-type-dot.found { background: #edf6ff; color: var(--brand-blue); }
+.report-item-title { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.report-status { color: var(--muted); font-size: 11px; text-transform: capitalize; }
+.integration-footnote { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 20px; color: var(--muted); font-size: 12px; }
+.integration-state { padding: 24px; color: var(--muted); text-align: center; }
+.chat-page { padding-bottom: 64px; }
+.chat-workspace { display: grid; grid-template-columns: minmax(230px, .75fr) minmax(0, 1.5fr); align-items: stretch; gap: 18px; max-width: 1000px; min-height: 520px; margin: 0 auto; }
+.conversation-list, .conversation-view { min-width: 0; overflow: hidden; }
+.conversation-list-heading, .conversation-header { display: flex; align-items: center; gap: 12px; min-height: 74px; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+.conversation-list-heading > div { display: grid; flex: 1; gap: 3px; }
+.conversation-list-heading h2, .conversation-header h2 { font-size: 16px; }
+.conversation-list-heading span, .conversation-header div span { color: var(--muted); font-size: 12px; }
+.icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--muted); }
+.icon-button:hover { background: #f4f8fb; color: var(--ink); }
+.spin { animation: spin .8s linear infinite; }
+.conversation-items { display: grid; gap: 4px; margin: 0; padding: 8px; list-style: none; }
+.conversation-option { display: flex; align-items: center; width: 100%; gap: 11px; padding: 11px 10px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); text-align: left; }
+.conversation-option:hover, .conversation-option.active { background: #edf6ff; }
+.conversation-avatar { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: #e9f4fd; color: var(--brand-blue); font-size: 14px; font-weight: 800; }
+.conversation-copy { display: grid; min-width: 0; gap: 4px; }
+.conversation-copy strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-copy small { color: var(--muted); font-size: 11px; }
+.conversation-empty, .conversation-placeholder, .chat-gate, .chat-first-message { display: grid; justify-items: center; gap: 11px; padding: 28px 22px; text-align: center; }
+.conversation-empty { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.conversation-empty strong, .conversation-placeholder strong, .chat-first-message strong, .chat-gate h2 { color: var(--ink); font-size: 15px; }
+.conversation-empty > svg { color: var(--brand-blue); }
+.conversation-empty a { color: var(--brand-blue); font-weight: 700; }
+.conversation-view { display: flex; flex-direction: column; min-height: 520px; }
+.conversation-header > div { display: grid; flex: 1; gap: 5px; }
+.conversation-header div span { display: inline-flex; align-items: center; gap: 4px; }
+.conversation-header div span svg { color: #16845b; }
+.conversation-reports { display: flex; align-items: center; gap: 6px; }
+.conversation-reports a { padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; color: var(--brand-blue); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.conversation-reports a:hover { background: #edf6ff; }
+.message-list { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 12px; min-height: 310px; max-height: 510px; overflow-y: auto; padding: 22px; }
+.message-list > .integration-state { width: 100%; }
+.chat-bubble { max-width: min(78%, 500px); padding: 11px 14px 8px; border: 1px solid #e5edf4; border-radius: 5px 16px 16px 16px; background: #f5f9fc; overflow-wrap: anywhere; }
+.chat-bubble.mine { align-self: flex-end; border-color: #d6eafa; border-radius: 16px 5px 16px 16px; background: #eaf5ff; }
+.chat-bubble p { color: var(--ink); font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+.chat-bubble time { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; text-align: right; }
+.chat-first-message, .conversation-placeholder { align-self: center; margin: auto; color: var(--muted); font-size: 13px; }
+.chat-inline-state { display: grid; gap: 10px; width: 100%; }
+.chat-inline-state .button { justify-self: center; }
+.message-form { display: grid; gap: 9px; padding: 14px 17px 16px; border-top: 1px solid var(--line); }
+.message-form textarea { min-height: 64px; resize: vertical; font-size: 14px; }
+.message-form-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.message-form-bottom small { color: var(--muted); font-size: 11px; }
+.message-form-bottom .button { min-width: 96px; padding: 11px 15px; }
+.chat-gate { width: min(100%, 550px); margin: 0 auto; padding: 38px 28px; }
+.chat-gate p { max-width: 400px; color: var(--muted); font-size: 14px; }
+.chat-gate .button { margin-top: 7px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+@media (max-width: 700px) {
+  .integration-page { padding-top: 36px; padding-bottom: 48px; }
+  .integration-heading { margin-bottom: 22px; }
+  .integration-heading p { font-size: 14px; }
+  .chat-workspace { grid-template-columns: 1fr; min-height: 0; }
+  .conversation-list { max-height: 260px; overflow-y: auto; }
+  .conversation-view { min-height: 450px; }
+  .message-list { min-height: 270px; max-height: 420px; }
+  .conversation-header { flex-wrap: wrap; }
+  .conversation-reports { order: 2; flex-basis: 100%; justify-content: flex-end; }
+  .conversation-header > .icon-button { order: 1; }
+}
+@media (max-width: 480px) {
+  .account-actions { display: grid; grid-template-columns: 1fr; }
+  .account-actions .button { width: 100%; }
+  .message-list { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-loading, .spin { animation: none; }
+}

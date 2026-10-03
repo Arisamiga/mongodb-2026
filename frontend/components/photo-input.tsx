@@ -105,7 +105,7 @@ export function PhotoInput({photos, onChange, onBusy}: {
                     </div>
                 ))}
             </div>
-            <p role="status" className="photo-status">{busy ? "Preparing photos…" : photos.length ? `${photos.length} of 3 photos added` : "Photos stay in this browser with your report. Avoid IDs or personal details."}</p>
+            <p role="status" className="photo-status">{busy ? "Preparing photos…" : photos.length ? `${photos.length} of 3 photos added` : "Photos are uploaded privately with your report. Avoid IDs or personal details."}</p>
             {error && <p role="alert" className="error-message">{error}</p>}
         </section>
     );

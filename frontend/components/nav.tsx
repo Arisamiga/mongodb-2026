@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import {HandHeart, MessageCircle, PackageX, X} from "lucide-react";
-import {useState} from "react";
+import {HandHeart, MessageCircle, PackageX, UserRound} from "lucide-react";
 import {Brand} from "@/components/brand";
+import {useSession} from "@/components/session-provider";
 
 export function Nav() {
-    const [chatOpen, setChatOpen] = useState(false);
+    const {user, loading} = useSession();
+    const initials = user?.display_name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
 
     return (
         <header className="nav">
@@ -25,49 +26,19 @@ export function Nav() {
                     </Link>
                 </nav>
                 <div className="nav-utilities">
-                    <button
-                        type="button"
-                        className="button chat-trigger nav-action"
-                        aria-expanded={chatOpen}
-                        aria-controls="demo-chat-panel"
-                        onClick={() => setChatOpen((open) => !open)}
-                    >
+                    <Link href="/chat" className="button chat-trigger nav-action">
                         <MessageCircle size={16} />
                         Chat
-                    </button>
-                    <span className="user-avatar" role="img" aria-label="Signed in as Alex Rivera (demo)" title="Alex Rivera (demo)">
-                        AR
-                    </span>
+                    </Link>
+                    <Link href="/account" className="button account-trigger nav-action"
+                        aria-label={user ? `Account: ${user.display_name}` : "Sign in or create an account"}
+                        title={user?.display_name ?? "Account"}>
+                        {loading ? <span className="account-loading" aria-hidden="true" /> : user
+                            ? <span className="user-avatar" aria-hidden="true">{initials || "U"}</span>
+                            : <><UserRound size={16} /><span>Account</span></>}
+                    </Link>
                 </div>
             </div>
-            {chatOpen && (
-                <aside className="demo-chat" id="demo-chat-panel" aria-label="Demo chat">
-                    <div className="demo-chat-heading">
-                        <span className="demo-chat-icon"><MessageCircle size={18} /></span>
-                        <div>
-                            <strong>Community chat</strong>
-                            <span>Here to help things find their way back</span>
-                        </div>
-                        <button
-                            className="chat-close"
-                            type="button"
-                            aria-label="Close chat"
-                            onClick={() => setChatOpen(false)}
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-                    <div className="demo-chat-content">
-                        <span className="chat-time">TODAY</span>
-                        <p className="chat-message">Hi there! Need help reporting something lost or found?</p>
-                        <p className="chat-placeholder">Chat is just a demo for now.</p>
-                    </div>
-                    <div className="demo-chat-input" aria-disabled="true">
-                        <span>Messaging is coming soon</span>
-                        <MessageCircle size={16} />
-                    </div>
-                </aside>
-            )}
         </header>
     );
 }

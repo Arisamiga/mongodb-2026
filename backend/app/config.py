@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     mongodb_database: str = "lost_found"
     jwt_secret: str = Field(min_length=32)
     jwt_ttl_minutes: int = Field(default=60, ge=1, le=1440)
-    match_threshold: float = Field(default=0.90, ge=0.90, lt=1)
+    match_threshold: float = Field(default=0.90, ge=0.90, le=1)
     ai_service_url: HttpUrl = "http://ai:8001"
     ai_embedding_path: str = "/embeddings"
     ai_matches_path: str = "/matches"

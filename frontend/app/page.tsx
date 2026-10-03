@@ -20,7 +20,7 @@ export default function Home() {
                 <ShieldCheck size={16} />
                 <span>Free to use</span>
                 <i />
-                No sign-up needed
+                Private match conversations
             </div>
         </section>
     );

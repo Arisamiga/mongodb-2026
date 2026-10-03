@@ -20,14 +20,15 @@ export function LocationInput({label}: {label: string}) {
     const [active, setActive] = useState(-1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [manual, setManual] = useState(false);
 
     useEffect(() => {
         inputRef.current?.setCustomValidity(selected ? "" : "Choose a location from the suggestions.");
-    }, [selected]);
+    }, [selected, manual]);
 
     useEffect(() => {
         const query = text.trim();
-        if (selected || query.length < 3) {
+        if (manual || selected || query.length < 3) {
             setResults([]);
             setLoading(false);
             return;
@@ -57,7 +58,7 @@ export function LocationInput({label}: {label: string}) {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [text, selected]);
+    }, [text, selected, manual]);
 
     function choose(place: Place) {
         setSelected(place);
@@ -86,6 +87,13 @@ export function LocationInput({label}: {label: string}) {
 
     return (
         <div className="location-field">
+            <button type="button" className="button" onClick={() => setManual(!manual)}>
+                {manual ? "Search for a place instead" : "Enter coordinates instead"}
+            </button>
+            {manual ? <div className="form-row">
+                <label>Longitude<input name="longitude" type="number" step="any" min={-180} max={180} required /></label>
+                <label>Latitude<input name="latitude" type="number" step="any" min={-90} max={90} required /></label>
+            </div> : <>
             <label>
                 {label}
                 <span className="location-input">
@@ -142,6 +150,7 @@ export function LocationInput({label}: {label: string}) {
             <input type="hidden" name="location" value={selected?.label ?? ""} />
             <input type="hidden" name="longitude" value={selected?.coordinates[0] ?? ""} />
             <input type="hidden" name="latitude" value={selected?.coordinates[1] ?? ""} />
+            </>}
         </div>
     );
 }

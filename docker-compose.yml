@@ -58,6 +58,8 @@ services:
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
+      BACKEND_URL: http://api:8000
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
     depends_on:
       api:
         condition: service_healthy

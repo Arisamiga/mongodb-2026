@@ -139,7 +139,7 @@ export function rankCandidates(query: QueryReport, candidates: Candidate[]): Mat
     const score = contractScore(scoreMatch(lost, found, c.cosine));
     if (score > MATCH_MIN_SCORE) out.push({ itemId: c.id, score });
   }
-  return out.sort((a, b) => b.score - a.score).slice(0, MATCH_LIMIT);
+  return out.sort((a, b) => b.score - a.score || a.itemId.localeCompare(b.itemId)).slice(0, MATCH_LIMIT);
 }
 
 // ---- Candidate search --------------------------------------------------------------------

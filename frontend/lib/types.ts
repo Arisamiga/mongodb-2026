@@ -1,30 +1,15 @@
-export const categories = [
-    "Electronics",
-    "Bags & backpacks",
-    "Keys",
-    "Wallets & cards",
-    "Clothing",
-    "Jewelry",
-    "Other",
-] as const;
+export const categories = ["Electronics", "Clothing", "Bags", "Keys", "Cards and IDs", "Books", "Other"] as const;
 export type Category = (typeof categories)[number];
-export type ItemInput = {
+export type Item = {
+    _id: string;
+    userId: string;
     title: string;
-    type: "LOST" | "FOUND";
+    type: "lost" | "found";
     category: Category;
     description: string;
-    location: string;
-    /** [longitude, latitude], the order the backend expects. */
-    coordinates: [number, number];
+    location: {coordinates: [number, number]};
     eventDate: string;
-    contactEmail: string;
-    imageUrl: string;
-    photos?: string[];
-};
-export type Item = ItemInput & {
-    id: string;
-    status: "OPEN" | "RESOLVED";
-    createdAt: string;
-    updatedAt: string;
-    schemaVersion: 1;
+    status: "open" | "matched" | "returned";
+    matchingStatus: "pending" | "completed" | "failed";
+    images: string[];
 };
