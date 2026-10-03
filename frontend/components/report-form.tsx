@@ -1,13 +1,14 @@
 "use client";
 import {useState} from "react";
-import {useRouter, useSearchParams} from "next/navigation";
+import {useSearchParams} from "next/navigation";
 import {
-    Search,
+    PackageX,
     HandHeart,
     ArrowRight,
     LoaderCircle,
     ShieldCheck,
     ImagePlus,
+    CheckCircle2,
 } from "lucide-react";
 import {categories} from "@/lib/types";
 import {saveItem} from "@/lib/store";
@@ -18,7 +19,7 @@ export function ReportForm() {
     );
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
-    const router = useRouter();
+    const [submitted, setSubmitted] = useState(false);
     async function submit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setBusy(true);
@@ -26,7 +27,7 @@ export function ReportForm() {
         const form = event.currentTarget;
         const payload = Object.fromEntries(new FormData(form)) as Record<string, string>;
         try {
-            const item = saveItem({
+            saveItem({
                 title: payload.title,
                 type: type as "LOST" | "FOUND",
                 category: payload.category as (typeof categories)[number],
@@ -36,11 +37,22 @@ export function ReportForm() {
                 contactEmail: payload.contactEmail,
                 imageUrl: payload.imageUrl,
             });
-            router.push(`/items/${item.id}?created=1`);
+            setSubmitted(true);
         } catch {
             setError("Your browser could not save this report. Check that local storage is available and try again.");
             setBusy(false);
         }
+    }
+    if (submitted) {
+        return (
+            <div className="success-message" role="status">
+                <CheckCircle2 size={22} />
+                <div>
+                    <strong>Your {type === "LOST" ? "lost" : "found"} report has been saved.</strong>
+                    <span> It is stored in this browser on this device.</span>
+                </div>
+            </div>
+        );
     }
     return (
         <form onSubmit={submit} className="report-form">
@@ -52,7 +64,7 @@ export function ReportForm() {
                     {[
                         [
                             "LOST",
-                            Search,
+                            PackageX,
                             "I lost something",
                             "Let’s help you find it.",
                         ],
@@ -63,7 +75,7 @@ export function ReportForm() {
                             "Let’s get it home.",
                         ],
                     ].map(([value, Icon, title, copy]) => {
-                        const I = Icon as typeof Search;
+                        const I = Icon as typeof PackageX;
                         return (
                             <button
                                 key={String(value)}
@@ -85,7 +97,7 @@ export function ReportForm() {
                 <div className="form-divider" />
                 <h2>The little details matter.</h2>
                 <p className="form-intro">
-                    The more you share, the easier it is to recognize. All
+                    Add the details you want to keep with this report. All
                     fields are required except the photo.
                 </p>
                 <label>
@@ -168,13 +180,13 @@ export function ReportForm() {
                         placeholder="you@example.com"
                     />
                     <small>
-                        Your email will be visible on this item’s detail page so
-                        people can contact you.
+                        Your email is saved with this report in this browser; it
+                        is not shared online by this frontend.
                     </small>
                 </label>
                 <label className="consent">
-                    <input type="checkbox" required />I agree to share my email
-                    publicly for this report.
+                    <input type="checkbox" required />I agree to save my email
+                    with this report in this browser.
                 </label>
                 {error && (
                     <div role="alert" className="error-message">

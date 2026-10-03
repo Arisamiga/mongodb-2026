@@ -1,26 +1,32 @@
-# Remote AI service contract (proposed)
+# Matching service contract
 
-This backend runs separately from the AI service. The AI service owns model inference; this API owns accounts, report validation/storage, candidate validation, conversation creation, and authorization. The paths and JSON shapes below are what the backend currently expects, but the contract is **not confirmed with the AI teammate**. Confirm the wire format, deployment URL/network, and credentials together before treating this as a stable integration.
+The FastAPI backend calls `backend/matching-service`, a Node 24 HTTP wrapper around the shared TypeScript engine in `lib/matching`. This is the implemented local integration, not a proposed external model endpoint or Python port. The wrapper creates embeddings through Voyage AI and reads/scores reports from the same MongoDB database as the API.
 
-## Configuration
+## Configuration and startup
 
-Set these values in the backend's private `.env` or deployment environment:
+Keep settings and credentials in the private `backend/.env` (copy `backend/.env.example` as a starting point). `JWT_SECRET` is required by the API and is not used by the matching service. `VOYAGE_API_KEY` is required for embedding requests. The API and matching service must share `MONGODB_URI` and `MONGODB_DATABASE` so the matching service can look up saved reports. `AI_SERVICE_TOKEN` is optional; when configured, set the same value for both processes and the API sends it as a bearer token. Without it the service does not require bearer auth. `/health` is a database-ping endpoint and does not require that token.
 
-| Variable | Current default | Meaning |
-| --- | --- | --- |
-| `AI_SERVICE_URL` | `http://ai:8001` | Base URL reachable from the backend process/container. |
-| `AI_EMBEDDING_PATH` | `/embeddings` | Relative path for embedding POSTs. |
-| `AI_MATCHES_PATH` | `/matches` | Relative path for match POSTs. |
-| `AI_TIMEOUT_SECONDS` | `30` | HTTP request timeout; configured range is greater than 0 and at most 120 seconds. |
-| `AI_SERVICE_TOKEN` | unset | Optional bearer token sent on both requests when configured. |
-| `MATCH_THRESHOLD` | `0.90` | Scores must be at or above this value; it may be raised, not lowered below 0.90. |
+Compose starts MongoDB, the API, and the matching service on a shared network; it sets the service URL to `http://ai:8001`, uses the same local Mongo URI for both app containers, and does not publish the matching-service port. For host-run development, install Node dependencies from `backend` with `npm ci --prefix matching-service`, then start the processes in separate terminals:
 
-Paths must start with one `/` and cannot include a query or fragment. The backend's Compose file includes only API and MongoDB, not the AI service; the hostname/default is not guaranteed to resolve outside a network that provides `ai`. Keep service credentials in environment configuration, never in source control. If the API is public, use an authenticated private service channel; the optional bearer token does not replace network protection.
+```sh
+cd backend/matching-service
+node --env-file=../.env index.ts
+```
 
-## Embedding request
+```sh
+cd backend
+uv sync
+AI_SERVICE_URL=http://127.0.0.1:8001 uv run uvicorn app.asgi:app --reload
+```
+
+The matching service defaults to port 8001. Its `index.ts` also loads `.env` from its working directory if present; the command above explicitly loads `backend/.env`. `AI_SERVICE_URL` defaults to the Compose hostname `http://ai:8001`, so a host-run API must override it as shown. For Atlas or another shared database, configure both processes with the same private URI and database name; never commit credentials.
+
+## Embeddings
+
+The API sends report title and description to:
 
 ```http
-POST {AI_SERVICE_URL}{AI_EMBEDDING_PATH}
+POST /embeddings
 Content-Type: application/json
 Authorization: Bearer <AI_SERVICE_TOKEN>  # only when configured
 ```
@@ -29,65 +35,58 @@ Authorization: Bearer <AI_SERVICE_TOKEN>  # only when configured
 {"title":"Blue backpack","description":"Blue canvas backpack left in the library."}
 ```
 
-Expected success response:
+The response is `{"embedding":[...]}`. The backend validates a non-empty finite numeric vector and stores it on the report; embeddings are not included in report API responses. Model and dimension configuration is authoritative in `lib/matching/config.ts`: Voyage `voyage-3.5-lite`, 1024 dimensions. `lib/matching/embedding.ts` embeds the trimmed title and description together as a document and uses `VOYAGE_API_KEY` for the Voyage API call. The API requests the embedding before inserting a new report; an unusable or failed response returns API HTTP 503 and the report is not saved.
 
-```json
-{"embedding":[0.12,-0.34,0.56]}
-```
+Images, image URLs, attributes, and account details are not sent to Voyage. Images remain available through the backend's protected upload/read routes and are excluded from remote embedding and matching.
 
-`embedding` must be a non-empty array of at most 4096 finite JSON numbers. The backend currently accepts a varying vector length; agree on a fixed dimension/model compatibility rule before production. It stores the value on the report as `embedding` and excludes it from API report responses. The AI service should return a non-2xx response for inference failures; malformed JSON, transport errors, non-2xx status, or schema-invalid response are treated as AI failure.
+## Match request and response
 
-## Match request
+The API sends the saved report's fields to:
 
 ```http
-POST {AI_SERVICE_URL}{AI_MATCHES_PATH}
+POST /matches
 Content-Type: application/json
 Authorization: Bearer <AI_SERVICE_TOKEN>  # only when configured
 ```
 
 ```json
 {
-  "itemId": "6d3c1f0e-4ccf-4f31-a15a-f5131f7031db",
-  "type": "lost",
-  "title": "Blue backpack",
-  "description": "Blue canvas backpack left in the library.",
-  "category": "Bags",
-  "location": {"coordinates": [-0.12, 51.5]},
-  "eventDate": "2026-10-03T12:30:00Z",
-  "userId": "report-owner-id"
+  "itemId":"saved-report-id",
+  "type":"lost",
+  "title":"Blue backpack",
+  "description":"Blue canvas backpack left in the library.",
+  "category":"Bags",
+  "location":{"coordinates":[-0.12,51.5]},
+  "eventDate":"2026-10-03T12:30:00Z",
+  "userId":"report-owner-id"
 }
 ```
 
-Each comparison sends the saved report's type (which selects the opposite search side), title and description (embedding text), category (category score), longitude-first coordinates (location score), timezone-qualified event date/time (time score), and authenticated owner's identifier (exclude their own reports). `itemId` is retained for correlation with the stored report. BSON dates are serialized to ISO 8601 for HTTP JSON; the database still stores real dates. Coordinates are supplied with the report and validated by the backend; `userId` comes from the account rather than client input. Image bytes, image URLs, embeddings, and account details are not sent in this request. Endpoint paths and response format still need confirmation from the teammate.
+`itemId` identifies the saved report. The request validates the full payload, then the service looks up that report in the shared `items` collection; the saved report, not potentially stale request values, is authoritative for its comparison. It scans saved open reports of the opposite type, excludes the current report and reports belonging to the same user, and skips candidates with invalid or incompatible matching fields/vectors.
 
-Expected success response:
+The response is `{"matches":[{"itemId":"candidate-report-id","score":0.91}]}`. `score` is the engine's weighted total in the range 0–1, not a probability; component scores are not returned over this endpoint. Candidates are ordered by descending score (ID breaks ties), with at most 1000 results. The matching service does not create conversations or change report status. The backend checks candidates against its own database and authorization rules, deduplicates them, and creates private conversations for qualifying pairs. The backend's `MATCH_THRESHOLD` defaults to 0.90 and accepts scores **equal to or above** that value; it may be raised but not lowered.
 
-```json
-{"matches":[{"itemId":"3b92d58e-3164-4f71-bab0-210865b26c82","score":0.91}]}
-```
+The backend requires a saved item to be open to match. Matching is read-only with respect to reports and only selects open opposite-type candidates. It does not mark either report matched or returned; owners control those report statuses. Existing conversations remain available to their members after a report closes.
 
-Each candidate `itemId` must be a string of 1–100 characters. `score` must be a finite number from 0 through 1. The response may contain at most 1000 candidates. Return IDs of reports already stored in this backend's agreed `items` collection. The AI service should rank candidates as useful, but must not create conversations, change report status, or decide authorization. Candidate scores below `MATCH_THRESHOLD` are ignored by the backend; scores at or above 0.90 auto-link users by default.
+## Scoring and scale
 
-The backend is authoritative for whether a candidate exists, has opposite type (`lost`/`found`), remains `open`, and belongs to a different user. It skips invalid/non-eligible candidates, deduplicates IDs, sorts by score, then upserts a private conversation keyed by the lost/found report pair. An AI candidate is not confirmation that an item was returned: report status remains `open` until its owner sets `matched` or `returned`. Those closed reports are excluded from new matching; existing conversations are retained.
+The wrapper calls `cosineSimilarity` and the original `scoreMatch` from `lib/matching/score.ts` against stored 1024-element embeddings. The weighted total combines description 0.6, location 0.2, time 0.1, and category 0.1. Description cosine is linearly stretched from a 0.7 floor to a 0.9 ceiling and clamped to 0–1. Those bounds are sample-derived heuristics, not calibrated probabilities. With coordinates, location score falls linearly from 1 to 0 across 500 metres. Time score has a 24-hour half-life and tolerates a found date up to three hours before the lost date. Category matches case-insensitively.
 
-## Failure and retry behavior
+This implementation scans saved opposite-type open reports and computes exact cosine similarity over their vectors; it does not use Atlas Vector Search's normalized score or require an Atlas vector index. The scan is intended for small-project scale and grows with the number of stored reports. A separate 2d geospatial index may still be used by the backend's nearby-listing route; that is unrelated to vector matching.
 
-For report creation, embedding is requested before MongoDB insertion. An unavailable service or unusable embedding returns API `503` and saves no report. Once the embedding is stored with the report, a match-service failure does not roll back the report: the API returns it with `matchingStatus: "failed"`. Retry matching with the owner's `POST /items/{item_id}/match` call. `GET /items/{item_id}/matches` also calls the match service and can return `503`; retrying is safe because conversations are upserted by unique report pair. The report's internal `matchingStatus` records `pending`, `completed`, or `failed`; it is distinct from the agreed report statuses `open`, `matched`, and `returned`.
+## Existing embeddings and operations
 
-## Backend-owned report and storage contract
+Embeddings from MiniLM or any other model/dimension are incompatible with the current Voyage vectors. Re-embed **all reports** with the configured Voyage model before comparing existing reports with new ones. The service returns HTTP 409 if the requested saved report is not ready for matching (including an invalid current embedding); it skips invalid/incompatible candidate reports. There is no automatic migration/backfill or administrative re-embedding API. Back up the database and plan an authorized migration; do not mass-delete reports to work around incompatible vectors. New reports created through the authenticated backend route receive current embeddings.
 
-Report creation is authenticated; `userId` is derived from the caller and must not be provided by the AI service or client. Current API/report fields use the agreed names `type`, `title`, `description`, `category`, `location`, `eventDate`, `status`, `userId`, and `createdAt`, with a stored `embedding`. Categories are exactly `Electronics`, `Clothing`, `Bags`, `Keys`, `Cards and IDs`, `Books`, or `Other`; types are exactly lowercase `lost` and `found`; statuses are exactly lowercase `open`, `matched`, and `returned`.
+The backend uses HTTP 503 for embedding-service failures and for match-service request failures. Report creation does not persist a report when embedding generation fails; a later match failure leaves the already-saved report intact and records its internal `matchingStatus` as failed. Retry via the backend's owner-only match route or matches read route. Conversation upserts are idempotent by report pair.
 
-The `items` collection is hardcoded. `MONGODB_DATABASE` currently defaults to `lost_found`; agree with the teammate on the shared database name before connecting to Atlas. The Atlas URI is supplied privately as `MONGODB_URI` and must not be committed. `createdAt` is backend-assigned. `eventDate` must arrive as an ISO 8601 date-time with timezone; both values are persisted as BSON dates rather than strings. Report IDs are currently UUID strings; serialization/lookup supports ObjectId-form IDs as well, so the match service must treat `itemId` as an opaque string and echo valid report IDs exactly.
+Backend tests use mocked HTTP and a fake database, plus cross-language tests that launch the actual Node HTTP service and verify Python-to-engine matching, private conversations, and image access with injected storage/embeddings. Install the service dependencies first to enable those tests. The matching-service test command is `npm test --prefix matching-service`; service tests inject the embedding/database dependencies while exercising real scoring. MongoDB-specific backend tests are skipped unless `MONGODB_TEST_URI` is set (use only a disposable database). These checks do not establish a live Voyage API request or live shared-database integration; no paid Voyage request is implied by local test success.
 
-Report creation accepts `"location": {"coordinates": [longitude, latitude]}` directly and persists that same shape. Longitude must be a finite number in -180..180, latitude in -90..90. No named/custom locations, campus dropdown, or location environment configuration are used.
+## Source of truth
 
-`GET /metadata` (authenticated) provides the backend's current `categories` and `statuses` for clients to populate consistently. Image files are attached separately through the backend's authenticated GridFS upload route; `images` stores protected API URLs. String attributes remain optional report data. Embedding generation currently receives only title and description, not image bytes; an image-aware AI contract remains future work.
-
-## Operational agreements and gaps
-
-- Confirm the two endpoint paths, request/response schemas, vector dimensions, service URL/network, and token arrangement with the AI teammate; the shapes documented here describe the backend's current expectations, not mutual confirmation.
-- Confirm the shared Atlas database name. Current default is `lost_found`; the item collection name is `items`.
-- The backend currently has no automatic migration for old report documents or automatic embedding backfill. Existing legacy fields/locations and unembedded reports need a planned migration; new or seed reports should be submitted through authenticated `POST /items`, not inserted directly, so the embedding is created before storage.
-- An existing `location_2dsphere` index from the previous backend must be deliberately removed during migration because it rejects the new non-GeoJSON location shape; see [README.md](README.md#existing-data). The current index is `location.coordinates` (2d).
-- The repository's tests use fake/mocked AI and database components by default. A live AI-service/Atlas end-to-end integration has not been established by this contract.
+- `lib/matching/config.ts` — embedding model/dimensions, Voyage key name, and scoring parameters.
+- `lib/matching/embedding.ts` — Voyage request and embedding validation.
+- `lib/matching/score.ts` — cosine, component scores, and weighted total.
+- `backend/matching-service/server.ts` and `index.ts` — HTTP routes, database lookup/scan, filtering, and startup.
+- `backend/app/ai_client.py` — API-side HTTP payloads and response validation.
+- `backend/compose.yaml` and `backend/.env.example` — local service wiring and environment names.

@@ -1,9 +1,16 @@
 import type {Metadata} from "next";
 import Link from "next/link";
 import {ArrowUpRight, Heart} from "lucide-react";
+import {Nunito} from "next/font/google";
 import {Brand} from "@/components/brand";
 import {Nav} from "@/components/nav";
 import "./globals.css";
+
+const boomerangFont = Nunito({
+    subsets: ["latin"],
+    variable: "--font-boomerang",
+    display: "swap",
+});
 
 export const metadata: Metadata = {
     title: {
@@ -11,12 +18,12 @@ export const metadata: Metadata = {
         template: "%s | Boomerang",
     },
     description:
-        "A little community. A lot of possibility. Report lost and found items and help good things find their way home.",
+        "A simple way to record the details of something you have lost or found.",
     icons: {icon: "/brand/boomerang-mark.png"},
 };
 export default function RootLayout({children}: {children: React.ReactNode}) {
     return (
-        <html lang="en">
+        <html lang="en" className={boomerangFont.variable}>
             <body>
                 <a href="#main" className="skip-link">
                     Skip to content
@@ -29,8 +36,8 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                             <Brand />
                         </Link>
                         <span>Good things find their way back.</span>
-                        <Link href="/report">
-                            Make someone’s day <ArrowUpRight size={15} />
+                        <Link href="/report?type=FOUND">
+                            Report a found item <ArrowUpRight size={15} />
                         </Link>
                     </div>
                     <div className="container footer-bottom">
