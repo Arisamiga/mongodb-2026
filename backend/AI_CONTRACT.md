@@ -4,22 +4,23 @@ The FastAPI backend calls `backend/matching-service`, a Node 24 HTTP wrapper aro
 
 ## Configuration and startup
 
-Keep settings and credentials in the private `backend/.env` (copy `backend/.env.example` as a starting point). `JWT_SECRET` is required by the API and is not used by the matching service. `VOYAGE_API_KEY` is required for embedding requests. The API and matching service must share `MONGODB_URI` and `MONGODB_DATABASE` so the matching service can look up saved reports. `AI_SERVICE_TOKEN` is optional; when configured, set the same value for both processes and the API sends it as a bearer token. Without it the service does not require bearer auth. `/health` is a database-ping endpoint and does not require that token.
+Keep settings and credentials in root `.env` (copy root `.env.example` as a starting point). `JWT_SECRET` is required by the API and is not used by the matching service. `VOYAGE_API_KEY` is required for embedding requests, but is not needed to start the services or pass the database-backed health check; embedding requests fail until it is configured. The API and matching service must share `MONGODB_URI` and `MONGODB_DATABASE` so the matching service can look up saved reports. `AI_SERVICE_TOKEN` is optional; when configured, set the same value for both processes and the API sends it as a bearer token. Without it the service does not require bearer auth. `/health` is a database-ping endpoint and does not require that token. The sample uses `MONGODB_URI=mongodb://localhost:27017` and `AI_SERVICE_URL=http://127.0.0.1:8001` for host development; root Compose overrides those with the internal `mongo` and `ai` service names.
 
-Compose starts MongoDB, the API, and the matching service on a shared network; it sets the service URL to `http://ai:8001`, uses the same local Mongo URI for both app containers, and does not publish the matching-service port. For host-run development, install Node dependencies from `backend` with `npm ci --prefix matching-service`, then start the processes in separate terminals:
+Run `docker compose up --build` from the repository root to start the frontend, MongoDB, API, and matching service. The matching service is private to the Compose network; frontend, MongoDB, and API ports are bound to loopback. Only the API and matching-service containers receive the root `.env`; do not pass it to the frontend. For host-run development, install Node dependencies and start the processes in separate terminals:
 
 ```sh
 cd backend/matching-service
-node --env-file=../.env index.ts
+npm ci
+npm start
 ```
 
 ```sh
 cd backend
 uv sync
-AI_SERVICE_URL=http://127.0.0.1:8001 uv run uvicorn app.asgi:app --reload
+uv run uvicorn app.asgi:app --reload
 ```
 
-The matching service defaults to port 8001. Its `index.ts` also loads `.env` from its working directory if present; the command above explicitly loads `backend/.env`. `AI_SERVICE_URL` defaults to the Compose hostname `http://ai:8001`, so a host-run API must override it as shown. For Atlas or another shared database, configure both processes with the same private URI and database name; never commit credentials.
+The matching service defaults to port 8001. Both processes resolve the root `.env` relative to their source module, regardless of the current working directory; no CLI env-file flag is required. The API's sample `AI_SERVICE_URL` is host-local, while Compose overrides it with `http://ai:8001`. For Atlas or another shared database, configure both processes with the same private URI and database name; never commit credentials.
 
 ## Embeddings
 
@@ -89,4 +90,4 @@ Backend tests use mocked HTTP and a fake database, plus cross-language tests tha
 - `lib/matching/score.ts` — cosine, component scores, and weighted total.
 - `backend/matching-service/server.ts` and `index.ts` — HTTP routes, database lookup/scan, filtering, and startup.
 - `backend/app/ai_client.py` — API-side HTTP payloads and response validation.
-- `backend/compose.yaml` and `backend/.env.example` — local service wiring and environment names.
+- `docker-compose.yml` and `.env.example` — root Compose wiring and environment names.

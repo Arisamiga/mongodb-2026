@@ -1,5 +1,7 @@
 .venv
 .env
+.env.*
+matching-service/node_modules
 tests
 __pycache__
 .pytest_cache
