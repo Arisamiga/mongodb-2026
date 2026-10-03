@@ -17,8 +17,27 @@ services:
     env_file: .env
     environment:
       MONGODB_URI: mongodb://mongo:27017
+      AI_SERVICE_URL: http://ai:8001
     depends_on:
       mongo:
         condition: service_healthy
+      ai:
+        condition: service_healthy
+  ai:
+    build:
+      context: ..
+      dockerfile: backend/matching-service/Dockerfile
+    env_file: .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      PORT: "8001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 volumes:
   mongo-data:
