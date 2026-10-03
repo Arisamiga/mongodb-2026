@@ -21,25 +21,36 @@
 }
 .home-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
-  max-width: 860px;
+  width: 100%;
+  max-width: 760px;
   margin: 32px auto 24px;
 }
 .home-action {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   gap: 14px;
-  padding: 30px;
-  border: 1px solid var(--line);
+  min-height: 220px;
+  padding: 32px 24px;
+  border: 1px solid var(--action-color);
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 8px 20px var(--action-shadow);
+}
+.home-action > svg:first-child {
+  box-sizing: content-box;
+  padding: 14px;
+  border: 1px solid #ffffff40;
   border-radius: 18px;
-  text-align: left;
+  background: #ffffff1f;
 }
 .home-action strong {
   font-size: clamp(22px, 2.4vw, 30px);
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.025em;
 }
 .home-action > span {
@@ -47,18 +58,35 @@
   line-height: 1.6;
 }
 .lost-action {
-  background: var(--lost);
+  --action-color: #b91c1c;
+  --action-shadow: #b91c1c24;
+  background: linear-gradient(145deg, #dc2626, var(--action-color));
   color: #fff;
-  border-color: var(--lost);
 }
 .found-action {
-  background: #eaf3ff;
-  color: var(--dark);
-  border-color: #cfe4ff;
+  --action-color: #166534;
+  --action-shadow: #16653424;
+  background: linear-gradient(145deg, #15803d, var(--action-color));
+  color: #fff;
 }
 .home-action:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px #203d3215;
+  box-shadow: 0 14px 30px var(--action-shadow);
+}
+.home-action:focus-visible {
+  outline: 3px solid var(--action-color);
+  outline-offset: 5px;
+}
+.home-action:active {
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-action {
+    transition: none;
+  }
+  .home-action:hover {
+    transform: none;
+  }
 }
 .action-arrow {
   position: absolute;
