@@ -9,7 +9,7 @@ export function Nav() {
     return (
         <header className="nav">
             <div className="container nav-inner">
-                <Link href="/" className="brand">
+                <Link href="/" className="brand" aria-label="Boomerang home" onClick={() => setOpen(false)}>
                     <span className="logo">
                         <ScanLine size={24} />
                     </span>
@@ -20,8 +20,7 @@ export function Nav() {
                     aria-label="Main navigation"
                 >
                     {[
-                        ["/", "Home"],
-                        ["/browse", "Browse Items"],
+                        ["/search", "Search Items"],
                         ["/report", "Report Item"],
                     ].map(([url, label]) => (
                         <Link
