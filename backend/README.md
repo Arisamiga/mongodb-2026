@@ -1,10 +1,10 @@
 # Lost&Found backend
 
-FastAPI service for accounts, lost/found reports, matching, and private conversations. It stores reports and embeddings in MongoDB and calls a separately hosted AI service over HTTP for embeddings and candidate matches. The AI service and its model/weights are not part of this backend container. All API routes except health, registration, and login require a bearer access token.
+FastAPI service for accounts, lost/found reports, matching, and private conversations. It stores reports and their embeddings in MongoDB and calls the repository's Node 24 HTTP matching service for embeddings and candidate scores. That wrapper reuses the merged engine in `lib/matching`; it is not a Python port and does not run a separate model server. All API routes except health, registration, and login require a bearer access token.
 
 ## Local setup
 
-Requirements: Python 3.12+, `uv`, and MongoDB. For local development, MongoDB 8 is included in the optional Compose setup.
+Requirements: Python 3.12+, `uv`, Node.js 24+, npm, and MongoDB. For local development, MongoDB 8 is included in the Compose setup.
 
 ```sh
 cd backend
@@ -12,16 +12,28 @@ cp .env.example .env
 python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
-Put the generated value in `JWT_SECRET` in `.env` (at least 32 non-padding characters). Keep `.env` private and do not commit secrets. Configure `MONGODB_URI`, `MONGODB_DATABASE`, `AI_SERVICE_URL`, and optional AI endpoint paths/token for your environment. Locations are submitted with each report, not configured in `.env`.
+Put the generated value in `JWT_SECRET` in `.env` (at least 32 non-padding characters). Set `VOYAGE_API_KEY` to a private Voyage AI key; the matching service uses it to create embeddings. Keep `.env` private and do not commit secrets. The API and matching service use the same `MONGODB_URI` and `MONGODB_DATABASE`; `AI_SERVICE_TOKEN` is an optional shared bearer token between them. `JWT_SECRET` is required by the API but is not used by the matching service. Locations are submitted with each report, not configured in `.env`.
 
-Install and run the API without a local model extra:
+Install the matching service dependencies from `backend`:
 
 ```sh
-uv sync
-uv run uvicorn app.asgi:app --reload
+npm ci --prefix matching-service
 ```
 
-The configured AI service must be reachable from the API process. The default `AI_SERVICE_URL` is `http://ai:8001`, suitable only when that hostname is resolvable on the API's network. The interactive API reference is at `http://127.0.0.1:8000/docs`.
+For direct local development, run the matching service and API in separate terminals. The service reads `../.env`; override the Compose-only `ai` hostname for the host-run API:
+
+```sh
+cd backend/matching-service
+node --env-file=../.env index.ts
+```
+
+```sh
+cd backend
+uv sync
+AI_SERVICE_URL=http://127.0.0.1:8001 uv run uvicorn app.asgi:app --reload
+```
+
+The interactive API reference is at `http://127.0.0.1:8000/docs`. The matching service listens on port 8001 and uses the saved report in MongoDB as the authoritative input to matching.
 
 ### Docker Compose
 
@@ -29,16 +41,17 @@ The configured AI service must be reachable from the API process. The default `A
 docker compose up --build
 ```
 
-The Compose file starts the API and an unauthenticated local MongoDB 8.0, persisting Mongo data in a named volume and publishing ports only on loopback. It does not define or start an AI service; provide an `AI_SERVICE_URL` reachable from the API container (and attach both containers to a shared network if needed). Compose explicitly sets `MONGODB_URI=mongodb://mongo:27017`, overriding the `.env` URI. To use a shared Atlas database, run the API directly with the private Atlas URI in `.env`, or deliberately configure Compose to use the intended Atlas URI. Never put an Atlas connection string in source control or documentation. Stop local services with `docker compose down`; named-volume data remains.
+Compose starts MongoDB, the API, and the Node matching service on a shared private network. Both application containers use `mongodb://mongo:27017` and the configured database name; the matching service is not published as a host port. `AI_SERVICE_URL=http://ai:8001` resolves between the Compose services. Both containers load the private `.env`, including `VOYAGE_API_KEY` and, if set, `AI_SERVICE_TOKEN`. Mongo data persists in a named volume and only the API/Mongo ports are published on loopback. To use Atlas, deliberately configure both processes to use the same private URI. Never put a database URI in source control or documentation. Stop local services with `docker compose down`; named-volume data remains.
 
 ## Tests and lint
 
 ```sh
 uv run pytest
 uv run ruff check .
+npm test --prefix matching-service
 ```
 
-The API tests use a fake database and mocked AI client; AI client tests exercise HTTP behavior without requiring the teammate's service. They do not prove compatibility with a live AI service or shared MongoDB. If `MONGODB_TEST_URI` is set, API tests use that MongoDB deployment and create/drop uniquely named test databases; use only a disposable deployment. Passing local tests is not live integration verification.
+Backend tests use a fake database and mocked HTTP client; the optional MongoDB tests are skipped unless `MONGODB_TEST_URI` is set, in which case they create and drop uniquely named databases (use only a disposable deployment). After installing the matching-service dependencies, Python also launches the real Node HTTP service and verifies scoring, conversations, and image access in both report arrival orders, with an injected database and embedding provider. These cross-language tests skip when Node or the service dependencies are missing. The matching-service tests exercise the wrapper with injected database/embedding dependencies and the real scoring code; neither suite makes a live Voyage request by default. Passing local tests is not live Atlas/Voyage verification.
 
 ## Reports and API
 
@@ -86,7 +99,7 @@ On `POST /items`, the backend calls the AI embedding endpoint before inserting t
 
 If matching fails after insertion, the report stays saved and has `matchingStatus: "failed"`; the create response still contains the saved report. Retry with `POST /items/{item_id}/match`. Successful matching records `matchingStatus: "completed"`. This internal matching status is separate from report `status`. `GET /items/{item_id}/matches` asks the AI service again and returns matching report details, score, and conversation; it is owner-only. Embeddings are private stored data and are never returned in report API responses.
 
-See [AI_CONTRACT.md](AI_CONTRACT.md) for the proposed wire protocol and agreements that still need confirmation from the AI-service teammate.
+See [AI_CONTRACT.md](AI_CONTRACT.md) for the matching service's implemented wire protocol, scoring behavior, and embedding compatibility requirements.
 
 ## Image attachments (GridFS)
 
@@ -115,7 +128,7 @@ Remove the obsolete `CAMPUS_LOCATIONS` entry from `.env`. Existing named-locatio
 
 Update any old `.env` using `MATCH_THRESHOLD=0.78` to `0.90` or higher; lower thresholds now fail configuration validation. Existing external image URLs are not migrated into GridFS. Owners must upload the actual files using the new attachment route.
 
-There is no automatic migration for the previous report format (for example `kind`, `owner_id`, `created_at`, `resolved`, or GeoJSON `Point` locations). Existing documents may require a deliberate migration to the current field names, status values, location shape, and BSON dates, and reports need embeddings generated by the AI service before they can participate in matching. Do not bulk-convert or seed guessed data. Create reports through `POST /items` so the backend requests and stores each embedding.
+There is no automatic migration for the previous report format (for example `kind`, `owner_id`, `created_at`, `resolved`, or GeoJSON `Point` locations). Existing documents may require a deliberate migration to the current field names, status values, location shape, and BSON dates. The current engine uses Voyage `voyage-3.5-lite` embeddings with 1024 dimensions: previously stored MiniLM or other-model vectors are incompatible. Re-embed **all** reports with the current Voyage model before comparing old and new reports. The matching service rejects an invalid current-report vector with HTTP 409 and skips incompatible candidates; there is no automatic backfill or administrative re-embedding API. Back up the database and plan an authorized migration; do not mass-delete reports to work around incompatible vectors. New reports submitted through `POST /items` get current embeddings.
 
 The previous `location_2dsphere` index expects GeoJSON and can reject the new location shape. Before using an existing database, back it up and plan the report migration. An administrator should inspect `db.items.getIndexes()` and deliberately remove that obsolete index with `db.items.dropIndex("location_2dsphere")` after confirming it is no longer used. Startup does not drop indexes or rewrite shared data. The new nearby search uses the `location.coordinates` 2d index and `$geoWithin`/`$centerSphere`; results are ordered by creation time, not distance.
 
