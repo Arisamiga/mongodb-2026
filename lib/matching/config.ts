@@ -21,6 +21,19 @@ export const WEIGHTS = { description: 0.6, location: 0.2, time: 0.1, category: 0
 export const DESCRIPTION_FLOOR = 0.7;
 export const DESCRIPTION_CEILING = 0.9;
 
+// The only categories the backend accepts (backend/app/schemas.py). Spelled exactly, so the
+// category score can compare with plain equality.
+export const CATEGORIES = [
+  "Electronics",
+  "Clothing",
+  "Bags",
+  "Keys",
+  "Cards and IDs",
+  "Books",
+  "Other",
+] as const;
+export type Category = (typeof CATEGORIES)[number];
+
 // Time score halves every this many hours between the loss and the find.
 export const TIME_HALF_LIFE_HOURS = 24;
 // A found report dated slightly before the lost one is allowed (clocks and memory are fuzzy).

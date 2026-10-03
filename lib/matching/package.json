@@ -1,0 +1,15 @@
+{
+  "name": "matching",
+  "private": true,
+  "type": "module",
+  "description": "Lost&Found AI service: embeddings and candidate matching",
+  "scripts": {
+    "start": "node server.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.0",
+    "dotenv": "^16.4.0",
+    "hono": "^4.6.0",
+    "mongodb": "^6.10.0"
+  }
+}
