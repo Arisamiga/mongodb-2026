@@ -21,6 +21,37 @@ export const WEIGHTS = { description: 0.6, location: 0.2, time: 0.1, category: 0
 export const DESCRIPTION_FLOOR = 0.7;
 export const DESCRIPTION_CEILING = 0.9;
 
+// The only categories the backend accepts (backend/app/schemas.py). Spelled exactly, so the
+// category score can compare with plain equality.
+export const CATEGORIES = [
+  "Electronics",
+  "Clothing",
+  "Bags",
+  "Keys",
+  "Cards and IDs",
+  "Books",
+  "Other",
+] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+// Same text limits the backend enforces on reports (backend/app/schemas.py).
+export const MAX_TITLE = 160;
+export const MAX_DESCRIPTION = 2000;
+
+// Vector search settings. The database and collection names are NOT here: they come from
+// MONGODB_DATABASE / ITEMS_COLLECTION in .env (see db.ts).
+export const VECTOR_INDEX_NAME = "items_embedding";
+// Atlas looks at numCandidates nearest-neighbour candidates, then returns the best `limit`.
+// 200 vs 50 is Atlas's guidance of roughly 10-20x the limit for good recall.
+export const VECTOR_SEARCH_LIMIT = 50;
+export const VECTOR_NUM_CANDIDATES = 200;
+// The in-code fallback loads candidates into memory, so cap how many (fine for a hackathon).
+export const FALLBACK_MAX_CANDIDATES = 5000;
+
+// What /matches returns: at most this many, and only above this score (0-1).
+export const MATCH_LIMIT = 10;
+export const MATCH_MIN_SCORE = 0.5;
+
 // Time score halves every this many hours between the loss and the find.
 export const TIME_HALF_LIFE_HOURS = 24;
 // A found report dated slightly before the lost one is allowed (clocks and memory are fuzzy).
