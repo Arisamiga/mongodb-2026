@@ -31,6 +31,9 @@ export function Nav() {
                         <MessageCircle size={16} />
                         Chat
                     </button>
+                    <span className="user-avatar" role="img" aria-label="Signed in as Alex Rivera (demo)" title="Alex Rivera (demo)">
+                        AR
+                    </span>
                 </div>
             </div>
             {chatOpen && (
