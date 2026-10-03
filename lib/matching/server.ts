@@ -1,25 +1,19 @@
 // The AI service from backend/AI_CONTRACT.md. Run from lib/matching:  node server.ts
 import { timingSafeEqual } from "node:crypto";
-import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
+import "./env.ts"; // loads the repo-root .env before anything reads process.env
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { MAX_DESCRIPTION, MAX_TITLE } from "./config.ts";
+import { getItems } from "./db.ts";
 import { createEmbedding } from "./embedding.ts";
-
-// The repo-root .env, wherever the server is started from. quiet: dotenv prints nothing, and
-// variables already set in the real environment win (handy for tests and deployment).
-dotenv.config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
+import { findMatches, parseMatchRequest, ValidationError } from "./matching.ts";
 
 const PORT = Number(process.env.PORT ?? 8001);
 // Loopback by default so a laptop isn't exposed; set HOST=0.0.0.0 inside a container.
 const HOST = process.env.HOST ?? "127.0.0.1";
 // Optional shared secret. Read once and never logged.
 const TOKEN = process.env.AI_SERVICE_TOKEN || undefined;
-
-// Same limits the backend enforces on reports (backend/app/schemas.py), so we never see more.
-const MAX_TITLE = 160;
-const MAX_DESCRIPTION = 2000;
 
 const app = new Hono();
 
@@ -73,14 +67,22 @@ app.post("/embeddings", async (c) => {
   }
 });
 
-// Placeholder until the vector search is built: a valid, empty answer for the contract.
+// Returns {"matches":[{itemId, score}]}: top 10 above 0.50, best first, scores 0-1. Embeddings
+// are never part of the response. A report that can't be found or described gives an empty list.
 app.post("/matches", async (c) => {
   const body = await readObject(c);
   if (!body) return c.json({ error: "body must be a JSON object" }, 400);
-  if (typeof body.itemId !== "string" || body.itemId.length < 1 || body.itemId.length > 100) {
-    return c.json({ error: "itemId is required (1-100 chars)" }, 400);
+  try {
+    const req = parseMatchRequest(body);
+    const { matches } = await findMatches(req, await getItems());
+    return c.json({ matches });
+  } catch (err) {
+    if (err instanceof ValidationError) return c.json({ error: err.message }, 400);
+    // Fixed log line plus the error class only: driver and provider messages can carry
+    // hostnames or response bodies, and the connection string must never reach the log.
+    console.error(`matching failed (${(err as Error).name})`);
+    return c.json({ error: "matching failed" }, 502);
   }
-  return c.json({ matches: [] });
 });
 
 serve({ fetch: app.fetch, port: PORT, hostname: HOST }, () => {
