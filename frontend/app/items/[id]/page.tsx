@@ -72,7 +72,7 @@ export default async function Page({
                     <p className="description">{item.description}</p>
                     <a
                         className="button primary"
-                        href={`mailto:${encodeURIComponent(item.contactEmail)}?subject=${encodeURIComponent(`Lost&Found AI: ${item.title}`)}`}
+                        href={`mailto:${encodeURIComponent(item.contactEmail)}?subject=${encodeURIComponent(`Boomerang: ${item.title}`)}`}
                     >
                         <Mail size={18} />
                         Contact the reporter

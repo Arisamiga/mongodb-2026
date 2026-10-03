@@ -1,4 +1,4 @@
-# Lost&Found AI
+# Boomerang
 
 A responsive Next.js MVP for a MongoDB student hackathon. Includes a homepage, searchable community
 board, lost/found reports, item details, and email contact. No authentication or AI matching is

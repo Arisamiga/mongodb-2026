@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import Link from "next/link";
-import {ScanLine, ArrowUpRight, Heart} from "lucide-react";
+import {ArrowUpRight, Heart} from "lucide-react";
+import {Brand} from "@/components/brand";
 import {Nav} from "@/components/nav";
 import {isDemo} from "@/lib/items";
 import "./globals.css";
@@ -8,11 +9,12 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
     title: {
-        default: "Lost&Found AI — Good things find their way back",
-        template: "%s | Lost&Found AI",
+        default: "Boomerang — Good things find their way back",
+        template: "%s | Boomerang",
     },
     description:
         "A little community. A lot of possibility. Report lost and found items and help good things find their way home.",
+    icons: {icon: "/brand/boomerang-mark.png"},
 };
 export default function RootLayout({children}: {children: React.ReactNode}) {
     return (
@@ -32,10 +34,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                 <footer>
                     <div className="container footer-top">
                         <Link href="/" className="brand">
-                            <span className="logo small">
-                                <ScanLine size={19} />
-                            </span>
-                            Lost&Found <span className="ai-tag">AI</span>
+                            <Brand />
                         </Link>
                         <span>Good things find their way back.</span>
                         <Link href="/report">
@@ -43,7 +42,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                         </Link>
                     </div>
                     <div className="container footer-bottom">
-                        <span>© {new Date().getFullYear()} Lost&Found AI</span>
+                        <span>© {new Date().getFullYear()} Boomerang</span>
                         <span>
                             Built for community, with <Heart size={12} /> and
                             MongoDB.
