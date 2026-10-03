@@ -238,11 +238,12 @@ p {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px;
+  gap: 8px;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #f8fafc;
+  background: white;
+  box-shadow: 0 4px 18px #17203308;
 }
 .nav-inner > .brand {
   justify-self: start;
@@ -251,24 +252,47 @@ p {
   justify-self: end;
 }
 .nav-actions .button {
-  min-width: 112px;
+  min-width: 120px;
   border-radius: 999px;
   gap: 8px;
-  padding: 11px 20px;
-  box-shadow: 0 3px 8px #17203314;
+  padding: 12px 22px;
+  font-weight: 800;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
-.nav-actions .report-lost {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  border-color: #b91c1c;
+.nav-actions .button.report-lost {
+  --button-accent: #b91c1c;
+  --button-light: #fff1f2;
+  --button-edge: #fecdd3;
+}
+.nav-actions .button.report-found {
+  --button-accent: #166534;
+  --button-light: #ecfdf3;
+  --button-edge: #bbf7d0;
+}
+.nav-actions .button.nav-action {
+  background: var(--button-light);
+  border-color: transparent;
+  color: var(--button-accent);
+  box-shadow: none;
+}
+.nav-actions .button.nav-action:hover {
+  background: var(--button-accent);
   color: white;
+  border-color: var(--button-accent);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--button-accent) 22%, transparent);
+  transform: translateY(-2px);
 }
-.nav-actions .report-found {
-  background: linear-gradient(135deg, #15803d, #166534);
-  border-color: #166534;
+.nav-actions .button:focus-visible {
+  outline-color: var(--button-accent);
+}
+body:has([data-report-type="lost"]) .nav-actions .report-lost,
+body:has([data-report-type="found"]) .nav-actions .report-found {
+  background: var(--button-accent);
   color: white;
+  box-shadow: 0 0 0 3px var(--button-edge);
 }
-.nav-actions .button:hover {
-  filter: brightness(1.08);
+.nav-actions .button.nav-action:active {
+  transform: translateY(0);
 }
 @media (max-width: 760px) {
   .nav.nav {
@@ -1243,6 +1267,61 @@ footer {
   padding-top: 50px;
   padding-bottom: 85px;
   max-width: 760px;
+}
+body:has([data-report-type="lost"]) {
+  --report-accent: #b91c1c;
+  --report-tint: #fff1f2;
+  --report-border: #fecdd3;
+}
+body:has([data-report-type="found"]) {
+  --report-accent: #166534;
+  --report-tint: #effcf3;
+  --report-border: #bbf7d0;
+}
+body:has([data-report-type]) {
+  --green: var(--report-accent);
+  --purple: var(--report-accent);
+  background: var(--report-tint);
+}
+body:has([data-report-type]) main {
+  background: radial-gradient(ellipse at 50% 0%, var(--report-border), transparent 65%);
+}
+body:has([data-report-type]) .nav {
+  border-bottom-color: var(--report-border);
+}
+.report-page[data-report-type] .report-form {
+  border-color: var(--report-border);
+  border-top: 4px solid var(--report-accent);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--report-accent) 8%, transparent);
+}
+.report-page[data-report-type] .eyebrow {
+  display: inline-block;
+  padding: 7px 14px;
+  border: 1px solid var(--report-border);
+  border-radius: 999px;
+  background: var(--report-tint);
+}
+.report-page[data-report-type] .submit-button {
+  background: var(--report-accent);
+  border-color: var(--report-accent);
+  color: white;
+  box-shadow: none;
+}
+.report-page[data-report-type] .submit-button:hover {
+  background: color-mix(in srgb, var(--report-accent) 85%, black);
+}
+.report-page[data-report-type] input[type="checkbox"] {
+  accent-color: var(--report-accent);
+}
+.report-page[data-report-type] .location-results li.active,
+.report-page[data-report-type] .location-results li[role="option"]:hover {
+  background: var(--report-tint);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-actions .button.nav-action {
+    transition: none;
+    transform: none;
+  }
 }
 .centered {
   text-align: center;
