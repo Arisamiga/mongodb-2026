@@ -79,9 +79,9 @@
   background: linear-gradient(145deg, #dc2626, var(--action-color));
 }
 .found-action {
-  --action-color: #166534;
-  --action-shadow: #16653424;
-  background: linear-gradient(145deg, #15803d, var(--action-color));
+  --action-color: var(--brand-blue);
+  --action-shadow: #0877da24;
+  background: linear-gradient(145deg, #1e88e0, var(--action-color));
 }
 .home-action:hover {
   transform: translateY(-3px);
@@ -138,7 +138,8 @@
   }
 }
 :root {
-  --green: #0877da;
+  --brand-blue: #0877da;
+  --green: var(--brand-blue);
   --dark: #1b304b;
   --ink: #1b304b;
   --muted: #5f7084;
@@ -282,9 +283,9 @@ p {
   --button-edge: #fecdd3;
 }
 .nav-actions .button.report-found {
-  --button-accent: #166534;
-  --button-light: #ecfdf3;
-  --button-edge: #bbf7d0;
+  --button-accent: var(--brand-blue);
+  --button-light: #edf6ff;
+  --button-edge: #cce5fa;
 }
 .nav-actions .button.nav-action {
   background: var(--button-light);
@@ -1305,9 +1306,9 @@ body:has([data-report-type="lost"]) {
   --report-border: #fecdd3;
 }
 body:has([data-report-type="found"]) {
-  --report-accent: #166534;
-  --report-tint: #effcf3;
-  --report-border: #bbf7d0;
+  --report-accent: var(--brand-blue);
+  --report-tint: #f0f7ff;
+  --report-border: #cce5fa;
 }
 body:has([data-report-type]) {
   --green: var(--report-accent);
