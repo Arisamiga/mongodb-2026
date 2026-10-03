@@ -5,12 +5,12 @@ import {
     ArrowRight,
     LoaderCircle,
     ShieldCheck,
-    ImagePlus,
     CheckCircle2,
 } from "lucide-react";
 import {categories} from "@/lib/types";
 import {saveItem} from "@/lib/store";
 import {LocationInput} from "@/components/location-input";
+import {PhotoInput} from "@/components/photo-input";
 export function ReportForm() {
     const params = useSearchParams();
     const type = params.get("type") === "FOUND" ? "FOUND" : "LOST";
@@ -21,8 +21,11 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [photos, setPhotos] = useState<string[]>([]);
+    const [photosBusy, setPhotosBusy] = useState(false);
     async function submit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (photosBusy) return;
         setBusy(true);
         setError("");
         const form = event.currentTarget;
@@ -37,11 +40,12 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
                 coordinates: [Number(payload.longitude), Number(payload.latitude)],
                 eventDate: payload.eventDate,
                 contactEmail: payload.contactEmail,
-                imageUrl: payload.imageUrl,
+                imageUrl: photos[0] ?? "",
+                photos,
             });
             setSubmitted(true);
         } catch {
-            setError("Your browser could not save this report. Check that local storage is available and try again.");
+            setError("Your browser could not save this report. Storage may be full or unavailable. Try removing photos and saving again.");
             setBusy(false);
         }
     }
@@ -108,22 +112,7 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
                         placeholder="Color, brand, and anything that makes it unique. Keep one identifying detail private for a safe handover."
                     />
                 </label>
-                <label>
-                    <span className="inline-label">
-                        <ImagePlus size={16} />
-                        Photo URL <span className="optional">(optional)</span>
-                    </span>
-                    <input
-                        name="imageUrl"
-                        type="url"
-                        maxLength={2048}
-                        placeholder="https://…"
-                    />
-                    <small>
-                        Add a publicly accessible HTTPS image link. Avoid photos
-                        of IDs or personal details.
-                    </small>
-                </label>
+                <PhotoInput photos={photos} onChange={setPhotos} onBusy={setPhotosBusy} />
                 <div className="form-divider" />
                 <label>
                     Your email
@@ -150,7 +139,7 @@ function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
                 )}
                 <button
                     className={`button ${type === "LOST" ? "report-lost" : "report-found"} submit-button`}
-                    disabled={busy}
+                    disabled={busy || photosBusy}
                 >
                     {busy ? (
                         <>

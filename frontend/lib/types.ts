@@ -19,6 +19,7 @@ export type ItemInput = {
     eventDate: string;
     contactEmail: string;
     imageUrl: string;
+    photos?: string[];
 };
 export type Item = ItemInput & {
     id: string;

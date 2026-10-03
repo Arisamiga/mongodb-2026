@@ -1494,6 +1494,80 @@ body:has([data-report-type]) .nav {
   position: relative;
   margin-bottom: 21px;
 }
+.photo-field {
+  margin-block: 24px;
+}
+.photo-heading {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+.photo-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 30px 16px;
+  border: 2px dashed var(--report-border, var(--line));
+  border-radius: 18px;
+  background: var(--report-tint, var(--cream));
+  color: var(--report-accent, var(--ink));
+}
+.photo-dropzone.dragging {
+  border-color: var(--report-accent);
+  box-shadow: inset 0 0 0 2px var(--report-accent);
+}
+.photo-dropzone > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.photo-dropzone .photo-add {
+  background: var(--report-accent);
+  color: white;
+  border-radius: 999px;
+}
+.photo-add:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+.report-form .photo-dropzone input[hidden] {
+  display: none;
+}
+.photo-previews {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.photo-preview {
+  position: relative;
+  margin-top: 14px;
+}
+.photo-preview img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.photo-preview button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  color: var(--ink);
+}
+.photo-status {
+  font-size: 12px;
+  margin-top: 10px;
+}
 .location-field label {
   margin-bottom: 0;
 }
