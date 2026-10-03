@@ -1328,6 +1328,74 @@ footer {
   align-items: center;
   gap: 6px;
 }
+.location-field {
+  position: relative;
+  margin-bottom: 21px;
+}
+.location-field label {
+  margin-bottom: 0;
+}
+.location-input {
+  position: relative;
+  display: block;
+}
+.location-input > svg {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  left: 13px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.location-input > svg.spin {
+  left: auto;
+  right: 13px;
+}
+.report-form .location-input input {
+  padding-left: 38px;
+  padding-right: 38px;
+}
+.location-results {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 14px 30px #17203322;
+}
+.location-results li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 13px;
+}
+.location-results li span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.location-results li.active,
+.location-results li[role="option"]:hover {
+  background: #eaf3ff;
+}
+.location-results .location-empty {
+  cursor: default;
+  color: var(--muted);
+}
+.report-form .location-error {
+  display: block;
+  margin-top: 6px;
+  color: #b91c1c;
+}
 .optional {
   font-weight: 400;
   color: var(--muted);

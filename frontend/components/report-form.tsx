@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import {categories} from "@/lib/types";
 import {saveItem} from "@/lib/store";
+import {LocationInput} from "@/components/location-input";
 export function ReportForm() {
     const params = useSearchParams();
     const [type, setType] = useState(
@@ -33,6 +34,7 @@ export function ReportForm() {
                 category: payload.category as (typeof categories)[number],
                 description: payload.description,
                 location: payload.location,
+                coordinates: [Number(payload.longitude), Number(payload.latitude)],
                 eventDate: payload.eventDate,
                 contactEmail: payload.contactEmail,
                 imageUrl: payload.imageUrl,
@@ -132,16 +134,7 @@ export function ReportForm() {
                         />
                     </label>
                 </div>
-                <label>
-                    Where was it {type.toLowerCase()}?
-                    <input
-                        required
-                        name="location"
-                        minLength={3}
-                        maxLength={160}
-                        placeholder="e.g. O’Reilly Library, DCU"
-                    />
-                </label>
+                <LocationInput label={`Where was it ${type.toLowerCase()}?`} />
                 <label>
                     Description
                     <textarea

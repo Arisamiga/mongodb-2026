@@ -14,6 +14,8 @@ export type ItemInput = {
     category: Category;
     description: string;
     location: string;
+    /** [longitude, latitude], the order the backend expects. */
+    coordinates: [number, number];
     eventDate: string;
     contactEmail: string;
     imageUrl: string;
