@@ -1,12 +1,12 @@
 import type {Metadata} from "next";
 import Link from "next/link";
 import {ArrowUpRight, Heart} from "lucide-react";
-import {Nunito} from "next/font/google";
+import {Outfit} from "next/font/google";
 import {Brand} from "@/components/brand";
 import {Nav} from "@/components/nav";
 import "./globals.css";
 
-const boomerangFont = Nunito({
+const boomerangFont = Outfit({
     subsets: ["latin"],
     variable: "--font-boomerang",
     display: "swap",

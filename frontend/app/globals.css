@@ -1,22 +1,22 @@
 @import "tailwindcss";
 .home-hero {
   text-align: center;
-  padding-top: 54px;
-  padding-bottom: 56px;
+  padding-top: clamp(64px, 9vh, 110px);
+  padding-bottom: clamp(64px, 9vh, 110px);
 }
 .home-hero h1 {
-  font-size: clamp(40px, 5vw, 64px);
-  font-weight: 900;
-  line-height: 1.08;
-  letter-spacing: -0.055em;
-  margin: 24px 0 18px;
+  font-size: clamp(42px, 5.5vw, 78px);
+  font-weight: 650;
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+  margin: 28px 0 24px;
 }
 .home-hero h1 span {
   color: var(--green);
 }
 .home-hero > p {
   color: var(--muted);
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.7;
 }
 .home-actions {
@@ -138,13 +138,13 @@
   }
 }
 :root {
-  --green: #1E88E0;
-  --dark: #172033;
-  --ink: #172033;
-  --muted: #667085;
-  --line: #E2E8F0;
-  --cream: #F8FAFC;
-  --purple: #6CCFF9;
+  --green: #0877da;
+  --dark: #1b304b;
+  --ink: #1b304b;
+  --muted: #5f7084;
+  --line: #e2e8ec;
+  --cream: #fffcf8;
+  --purple: #0877da;
   --lost: #FC6A49;
   --success: #0E9EBA;
   --highlight: #FB9412;
@@ -157,8 +157,22 @@ body {
   background: var(--cream);
   color: var(--muted);
   font-family: var(--font-boomerang), "Avenir Next", sans-serif;
-  font-size: 14px;
+  font-size: 15px;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
   -webkit-font-smoothing: antialiased;
+}
+body > main {
+  flex: 1;
+}
+body:not(:has([data-report-type])) > main {
+  background: radial-gradient(ellipse at 15% 20%, #e8f5ff 0, transparent 55%),
+    radial-gradient(ellipse at 90% 75%, #ffeadf 0, transparent 50%);
+}
+::selection {
+  background: #cce8fc;
+  color: #1b304b;
 }
 a {
   text-decoration: none;
@@ -326,8 +340,8 @@ body:has([data-report-type="found"]) .nav-actions .report-found {
   color: var(--ink);
 }
 .chat-trigger:hover {
-  background: #fff8f2;
-  border-color: #f4d6c8;
+  background: #edf6ff;
+  border-color: #cce5fa;
 }
 .user-avatar {
   width: 40px;
@@ -514,7 +528,7 @@ body:has([data-report-type="found"]) .nav-actions .report-found {
   justify-content: center;
   border-radius: 12px;
   padding: 15px 21px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   border: 1px solid transparent;
@@ -587,11 +601,11 @@ body:has([data-report-type="found"]) .nav-actions .report-found {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #E5F6FE;
-  padding: 8px 11px;
-  border: 1px solid #BCE7FA;
+  background: #ffffffc9;
+  padding: 10px 16px;
+  border: 1px solid #cfe6f7;
   border-radius: 30px;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ink);
   letter-spacing: 0.01em;
 }
@@ -1124,20 +1138,20 @@ footer {
   font-size: 16px;
 }
 .footer-top > span {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 .footer-top > a:last-child {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--green);
 }
 .footer-bottom {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   border-top: 1px solid var(--line);
   padding-top: 19px;
@@ -1157,10 +1171,10 @@ footer {
   margin-bottom: 35px;
 }
 .page-heading h1 {
-  font-size: 44px;
+  font-size: clamp(36px, 4vw, 52px);
   line-height: 1.13;
   letter-spacing: -2px;
-  font-weight: 500;
+  font-weight: 600;
   margin: 17px 0;
 }
 .page-heading h1 span {
@@ -1168,7 +1182,7 @@ footer {
 }
 .page-heading p {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
 }
 .filters {
   display: flex;
@@ -1345,8 +1359,8 @@ body:has([data-report-type]) .nav {
 }
 .report-form {
   border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 35px;
+  border-radius: 28px;
+  padding: 38px;
   background: #fff;
   box-shadow: 0 12px 40px #1E88E007;
 }
@@ -1429,7 +1443,7 @@ body:has([data-report-type]) .nav {
 }
 .form-intro {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   margin: 9px 0 23px;
 }
 .report-form label {
@@ -1437,7 +1451,7 @@ body:has([data-report-type]) .nav {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 21px;
 }
@@ -1448,9 +1462,10 @@ body:has([data-report-type]) .nav {
   width: 100%;
   padding: 13px 14px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: 12px;
   color: var(--ink);
-  background: #fff;
+  background: #fbfcfd;
+  font-size: 16px;
   font-weight: 400;
   min-width: 0;
 }
@@ -1459,7 +1474,7 @@ body:has([data-report-type]) .nav {
   color: var(--muted);
 }
 .report-form small {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--muted);
   line-height: 1.7;
