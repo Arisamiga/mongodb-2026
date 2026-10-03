@@ -1,8 +1,5 @@
 #!/bin/sh
 set -eu
-
-cd "$(dirname "$0")/../frontend"
+repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$repo_root/frontend"
 npm ci
-if [ -f .env.example ] && [ ! -f .env.local ]; then
-    cp .env.example .env.local
-fi

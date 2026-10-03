@@ -10,7 +10,7 @@ export function Nav() {
     return (
         <header className="nav">
             <div className="container nav-inner">
-                <Link href="/" className="brand">
+                <Link href="/" className="brand" aria-label="Boomerang home" onClick={() => setOpen(false)}>
                     <Brand />
                 </Link>
                 <nav
@@ -18,8 +18,7 @@ export function Nav() {
                     aria-label="Main navigation"
                 >
                     {[
-                        ["/", "Home"],
-                        ["/browse", "Browse Items"],
+                        ["/search", "Search Items"],
                         ["/report", "Report Item"],
                     ].map(([url, label]) => (
                         <Link

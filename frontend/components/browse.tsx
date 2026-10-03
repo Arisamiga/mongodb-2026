@@ -5,20 +5,21 @@ import Link from "next/link";
 import {categories, type Item} from "@/lib/types";
 import {findItems} from "@/lib/store";
 import {ItemCard} from "./item-card";
-export function Browse() {
+export function Browse({searchOnly = false}: {searchOnly?: boolean}) {
     const [q, setQ] = useState("");
     const [type, setType] = useState("");
     const [category, setCategory] = useState("");
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
+    const canSearch = !searchOnly || q.trim().length >= 3;
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            setItems(findItems({q, type, category}));
+            setItems(canSearch ? findItems({q, type, category}) : []);
             setLoading(false);
         }, 200);
         return () => clearTimeout(timeout);
-    }, [q, type, category]);
+    }, [q, type, category, canSearch]);
     return (
         <>
             <div className="filters">
@@ -56,7 +57,7 @@ export function Browse() {
             <div className="results-toolbar">
                 <div className="tabs">
                     {[
-                        ["", "All items"],
+                        ["", searchOnly ? "Lost & found" : "All items"],
                         ["LOST", "Lost"],
                         ["FOUND", "Found"],
                     ].map(([value, label]) => (
@@ -72,12 +73,18 @@ export function Browse() {
                     ))}
                 </div>
                 <span aria-live="polite">
-                    {loading
+                    {!canSearch ? "Enter at least 3 characters" : loading
                         ? "Looking around…"
                         : `${items.length} ${items.length === 1 ? "item" : "items"}`}
                 </span>
             </div>
-            {loading ? (
+            {!canSearch ? (
+                <div className="empty-state">
+                    <Search size={34} />
+                    <h3>What are you looking for?</h3>
+                    <p>Enter at least 3 characters describing your item or its location to see matching reports.</p>
+                </div>
+            ) : loading ? (
                 <div className="item-grid" aria-label="Loading items">
                     {[1, 2, 3].map((n) => <div key={n} className="skeleton" />)}
                 </div>
