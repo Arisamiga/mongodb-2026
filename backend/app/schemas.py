@@ -6,12 +6,14 @@ from pydantic import (
     ConfigDict,
     EmailStr,
     Field,
-    HttpUrl,
     StringConstraints,
     field_validator,
 )
 
 Password = Annotated[str, StringConstraints(strip_whitespace=False)]
+Category = Literal["Electronics", "Clothing", "Bags", "Keys", "Cards and IDs", "Books", "Other"]
+ReportStatus = Literal["open", "matched", "returned"]
+ReportType = Literal["lost", "found"]
 
 
 class InputModel(BaseModel):
@@ -42,8 +44,8 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
-class Location(InputModel):
-    type: Literal["Point"] = "Point"
+class CampusLocation(InputModel):
+    name: str = Field(min_length=1, max_length=100)
     coordinates: tuple[float, float]
 
     @field_validator("coordinates")
@@ -56,18 +58,27 @@ class Location(InputModel):
 
 
 class ItemCreate(InputModel):
-    kind: Literal["lost", "found"]
+    type: ReportType
     title: str = Field(min_length=1, max_length=160)
     description: str = Field(min_length=1, max_length=2000)
-    category: str = Field(min_length=1, max_length=80)
+    category: Category
     attributes: dict[str, str] = Field(default_factory=dict, max_length=30)
-    images: list[HttpUrl] = Field(default_factory=list, max_length=8)
-    location: Location
+    location: str = Field(min_length=1, max_length=100)
+    eventDate: datetime
 
-    @field_validator("category")
+    @field_validator("eventDate", mode="before")
     @classmethod
-    def normalize_category(cls, value):
-        return value.casefold()
+    def require_date(cls, value):
+        if not isinstance(value, (str, datetime)):
+            raise ValueError("eventDate must be an ISO 8601 datetime with timezone")
+        return value
+
+    @field_validator("eventDate")
+    @classmethod
+    def require_timezone(cls, value):
+        if value.tzinfo is None:
+            raise ValueError("eventDate must include a timezone")
+        return value
 
     @field_validator("attributes")
     @classmethod
@@ -84,22 +95,24 @@ class ItemCreate(InputModel):
 
 
 class ItemStatus(InputModel):
-    status: Literal["open", "resolved"]
+    status: ReportStatus
 
 
 class ItemOut(BaseModel):
-    id: str
-    owner_id: str
-    kind: Literal["lost", "found"]
+    model_config = ConfigDict(populate_by_name=True)
+    id: str = Field(alias="_id")
+    userId: str
+    type: ReportType
     title: str
     description: str
-    category: str
-    attributes: dict[str, str]
-    images: list[str]
-    location: Location
-    status: Literal["open", "resolved"]
-    matching_status: Literal["pending", "completed", "failed"]
-    created_at: datetime
+    category: Category
+    attributes: dict[str, str] = Field(default_factory=dict)
+    images: list[str] = Field(default_factory=list)
+    location: CampusLocation
+    status: ReportStatus
+    matchingStatus: Literal["pending", "completed", "failed"] = "pending"
+    eventDate: datetime
+    createdAt: datetime
 
 
 class MemberOut(BaseModel):
@@ -113,8 +126,13 @@ class ConversationOut(BaseModel):
     found_id: str
     members: list[MemberOut]
     score: float
-    components: dict[str, float]
     created_at: datetime
+
+
+class MatchOut(BaseModel):
+    item: ItemOut
+    score: float
+    conversation: ConversationOut
 
 
 class MessageCreate(InputModel):

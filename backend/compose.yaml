@@ -20,8 +20,5 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    volumes:
-      - model-cache:/home/api/.cache
 volumes:
   mongo-data:
-  model-cache:

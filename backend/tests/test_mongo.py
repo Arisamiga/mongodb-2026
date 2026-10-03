@@ -10,21 +10,23 @@ pytestmark = pytest.mark.skipif(
 
 def test_mongodb_text_and_geospatial_search(client, db):
     headers, _ = account(client)
-    near = create_item(client, headers)
+    near = create_item(client, headers, title="Black leather wallet")
     create_item(
         client,
         headers,
         title="Red umbrella",
-        category="umbrella",
-        location={"type": "Point", "coordinates": [2.35, 48.85]},
+        category="Other",
+        location="Gym",
     )
     assert client.get("/health").json() == {"status": "ok"}
     text = client.get("/items?q=wallet", headers=headers)
     assert text.status_code == 200, text.text
-    # Both descriptions mention wallet; MongoDB searches title and description.
-    assert near["id"] in {item["id"] for item in text.json()}
+    assert near["_id"] in {item["_id"] for item in text.json()}
     nearby = client.get("/items?longitude=-0.12&latitude=51.5&radius_m=1000", headers=headers)
     assert nearby.status_code == 200, nearby.text
-    assert [item["id"] for item in nearby.json()] == [near["id"]]
+    assert [item["_id"] for item in nearby.json()] == [near["_id"]]
     indexes = db.items.index_information()
-    assert any(index["key"] == [("location", "2dsphere")] for index in indexes.values())
+    assert any(
+        index["key"] == [("location.coordinates", "2d")]
+        for index in indexes.values()
+    )

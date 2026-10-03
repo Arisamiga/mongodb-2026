@@ -1,10 +1,10 @@
-# Lost&Found AI backend
+# Lost&Found backend
 
-FastAPI service for accounts, lost/found item listings, automatic matching, and private REST-based conversations. It stores data in MongoDB and computes semantic embeddings with a CPU sentence-transformer. Application endpoints require a bearer token except health, registration, and login.
+FastAPI service for accounts, lost/found reports, matching, and private conversations. It stores reports and embeddings in MongoDB and calls a separately hosted AI service over HTTP for embeddings and candidate matches. The AI service and its model/weights are not part of this backend container. All API routes except health, registration, and login require a bearer access token.
 
 ## Local setup
 
-Requirements: Python 3.12+, `uv`, and MongoDB 8 (or Docker Compose).
+Requirements: Python 3.12+, `uv`, and MongoDB. For local development, MongoDB 8 is included in the optional Compose setup.
 
 ```sh
 cd backend
@@ -12,28 +12,24 @@ cp .env.example .env
 python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
-Copy the generated value into `JWT_SECRET` in `.env`. Keep `.env` private and do not commit it. The secret must be at least 32 non-padding characters. Review `MONGODB_URI`, `MONGODB_DATABASE`, `CORS_ORIGINS`, and the match settings if needed.
+Put the generated value in `JWT_SECRET` in `.env` (at least 32 non-padding characters). Keep `.env` private and do not commit secrets. Configure `MONGODB_URI`, `MONGODB_DATABASE`, `AI_SERVICE_URL`, optional AI endpoint paths/token, and `CAMPUS_LOCATIONS` for your environment. `CAMPUS_LOCATIONS` must contain the real agreed campus places and coordinates; it is intentionally empty in the example configuration.
 
-### Run against a local MongoDB
-
-With MongoDB listening at the URI in `.env` (default `mongodb://localhost:27017`):
+Install and run the API without a local model extra:
 
 ```sh
-uv sync --extra ai
-uv run --extra ai uvicorn app.asgi:app --reload
+uv sync
+uv run uvicorn app.asgi:app --reload
 ```
 
-The sentence-transformer is loaded lazily; its model files are downloaded on the first item-embedding request if they are not cached. The default encoder runs on CPU. Visit `http://127.0.0.1:8000/docs` for the interactive API reference.
+The configured AI service must be reachable from the API process. The default `AI_SERVICE_URL` is `http://ai:8001`, suitable only when that hostname is resolvable on the API's network. The interactive API reference is at `http://127.0.0.1:8000/docs`.
 
-### Run with Docker Compose instead
-
-After creating and filling in `.env` as above:
+### Docker Compose
 
 ```sh
 docker compose up --build
 ```
 
-Compose runs the API and MongoDB 8.0, persists Mongo data and the model cache in named volumes, and publishes both ports only on loopback (`127.0.0.1`). Its MongoDB service has no authentication and is for local development only; do not expose it to an untrusted network. Stop the services with `docker compose down` (named-volume data remains).
+The Compose file starts the API and an unauthenticated local MongoDB 8.0, persisting Mongo data in a named volume and publishing ports only on loopback. It does not define or start an AI service; provide an `AI_SERVICE_URL` reachable from the API container (and attach both containers to a shared network if needed). Compose explicitly sets `MONGODB_URI=mongodb://mongo:27017`, overriding the `.env` URI. To use a shared Atlas database, run the API directly with the private Atlas URI in `.env`, or deliberately configure Compose to use the intended Atlas URI. Never put an Atlas connection string in source control or documentation. Stop local services with `docker compose down`; named-volume data remains.
 
 ## Tests and lint
 
@@ -42,87 +38,83 @@ uv run pytest
 uv run ruff check .
 ```
 
-The API tests use a fake encoder and `mongomock`, so they do not download/run the real model or require a MongoDB server. If `MONGODB_TEST_URI` is set, all API tests use that server and the additional MongoDB test verifies text and geospatial searches. Each test creates then drops a uniquely named test database; point this variable only at a disposable test deployment. The matching helper tests check score behavior, not real-world model accuracy. Passing the default tests does not verify an actual model download, live MongoDB deployment, or match quality.
+The API tests use a fake database and mocked AI client; AI client tests exercise HTTP behavior without requiring the teammate's service. They do not prove compatibility with a live AI service or shared MongoDB. If `MONGODB_TEST_URI` is set, API tests use that MongoDB deployment and create/drop uniquely named test databases; use only a disposable deployment. Passing local tests is not live integration verification.
 
-```sh
-MONGODB_TEST_URI=mongodb://localhost:27017 uv run pytest
-```
+## Reports and API
 
-## API overview
-
-JSON request bodies reject unknown fields. IDs are opaque strings. Registration and login return a bearer access token; send it as `Authorization: Bearer <access_token>` on all other API calls except health. Passwords are stored as Argon2 hashes, and are never included in user responses. Listings, including location and image URLs, are visible to all authenticated accounts; avoid putting sensitive details in descriptions. Conversations and their messages are visible only to the two matched users and expose display names, not email addresses.
+JSON input rejects unknown fields. Register/login provide bearer tokens; pass `Authorization: Bearer <access_token>` on authenticated routes. `GET /metadata` returns the allowed categories, statuses, and configured locations and requires authentication. Read locations from this endpoint and send the selected **location name** when creating a report.
 
 | Method and path | Purpose |
 | --- | --- |
-| `GET /health` | Ping MongoDB and return service status. |
-| `POST /auth/register` | Create an account and return a token (`201`; duplicate email is `409`). |
-| `POST /auth/login` | Authenticate and return a token. |
+| `GET /health` | Ping MongoDB. |
+| `GET /metadata` | Return report categories, statuses, and configured campus locations. |
+| `POST /auth/register`, `POST /auth/login` | Create an account or obtain a bearer token. |
 | `GET /auth/me` | Return the authenticated account. |
-| `POST /items` | Create a lost/found listing, embed it, then scan for matches (`201`). |
-| `GET /items` | List open items by default; filter, text-search, nearby-search, and paginate. |
-| `GET /items/{item_id}` | Get an item. |
-| `PATCH /items/{item_id}` | Owner changes status to `open` or `resolved`; reopening triggers matching. |
-| `POST /items/{item_id}/match` | Owner retries matching for an open item. |
-| `GET /items/{item_id}/matches` | List conversations created for an owned item, highest score first. |
-| `GET /conversations` | List the caller's conversations. |
-| `GET /conversations/{conversation_id}` | Get a conversation if the caller is a member. |
-| `POST /conversations/{conversation_id}/messages` | Add a message if the caller is a member (`201`). |
-| `GET /conversations/{conversation_id}/messages` | Read messages if the caller is a member. |
+| `POST /items` | Create a report, request its embedding, save it, then request matches (`201`). |
+| `GET /items` | List open reports by default; filter, text/nearby search, and paginate. |
+| `GET /items/{item_id}` | Get a report. |
+| `PATCH /items/{item_id}` | Owner changes report status; reopening triggers matching. |
+| `POST /items/{item_id}/match` | Owner retries matching for an open report. |
+| `GET /items/{item_id}/matches` | Owner requests current matches; returns candidate report, score, and conversation. |
+| `GET /conversations` and `/conversations/{conversation_id}` | List or view conversations the caller belongs to. |
+| `GET`/`POST /conversations/{conversation_id}/messages` | Read or send messages as a conversation member. |
 
-Account input: `email`, `password` (12–128 characters at registration), and `display_name` (1–80 characters). Item input has `kind` (`lost` or `found`), `title`, `description`, `category`, optional string-valued `attributes`, optional `images`, and `location`. Images are limited to eight HTTP(S) URLs; this API does not upload image files or analyze image content. Location is GeoJSON: `{ "type": "Point", "coordinates": [longitude, latitude] }`.
+Report-create JSON fields are `type`, `title`, `description`, `category`, `location`, and timezone-qualified `eventDate`; `attributes` are optional. Attach files after creation using the image-upload route below, not an `images` field in the JSON body. `type` is exactly `lost` or `found`. Categories are exactly `Electronics`, `Clothing`, `Bags`, `Keys`, `Cards and IDs`, `Books`, or `Other`. Statuses are exactly `open`, `matched`, and `returned`. A report starts `open`; an AI match does not change report status. Only the owner can change it, and only `open` reports are candidates for new conversations. Closed reports do not create further conversations; existing conversations remain available to their members.
 
-`GET /items` accepts optional `kind`, `status` (`open` or `resolved`), `category`, `q` (MongoDB text search), `mine`, and pagination (`limit`, `offset`). For a nearby search, provide both `longitude` and `latitude`, with optional `radius_m` (default 5000); text and nearby searches must be separate requests. The endpoint uses MongoDB's text index for `title` and `description` and its 2dsphere index for nearby search.
+`eventDate` must be an ISO 8601 date-time including a timezone, for example `2026-10-03T12:30:00+00:00`. It is stored as a MongoDB BSON date, not a text field. `createdAt` is assigned by the backend and also stored as a BSON date. User IDs come from the authenticated account and are not accepted from report input. Report IDs are UUID strings generated by this backend; it also accepts ObjectId-form IDs during lookup for compatibility and serializes IDs as strings in API responses.
 
-## Matching and conversations
+Locations are configured as `{ "name": "...", "coordinates": [longitude, latitude] }` entries in `CAMPUS_LOCATIONS`. The list is empty by default, so report creation returns `503` until actual agreed campus locations are configured. A supplied name must exactly match a configured entry. Do not use sample coordinates or invented campus locations in a real configuration. Optional `attributes` are string key/value pairs.
 
-Each new item is compared synchronously against all currently open items of the opposite kind. This scans the matching candidate set, so it is intended for small projects rather than large-scale workloads. It works whether the lost or found report arrives first: whichever report is added second scans the first. Items owned by the same account and resolved items are excluded. A conversation is created automatically when the score meets `MATCH_THRESHOLD` (default `0.78`); a unique lost/found pair index prevents duplicate conversations, including concurrent scans.
+`GET /items` supports `type`, `status`, `category`, `q`, `mine`, pagination, and nearby-search coordinates. Text search (`q`) and nearby search must be separate requests. Nearby search takes both `longitude` and `latitude`, with optional `radius_m` (default 5000). Listing APIs return report details, but omit embeddings.
 
-The score is a weighted similarity heuristic, **not a calibrated probability**. It combines cosine similarity between configured sentence-transformer text embeddings (default `sentence-transformers/all-MiniLM-L6-v2`; weight 0.65), matching shared attributes (0.15 when any keys overlap), distance-based location similarity (0.15), and normalized category equality (0.05). If there are no shared attributes, that component is omitted and the remaining weights are renormalized. `MATCH_DISTANCE_SCALE_KM` (default `5`) controls the location decay. The score and component similarities are returned with the conversation; neither the embeddings nor password hashes are returned by the API. Embeddings are stored in MongoDB and should be treated as private data. Changing `EMBEDDING_MODEL` requires re-embedding existing listings before comparing them with new listings.
+### Create and check a report
 
-Embedding generation occurs before the item is inserted. If it fails, the API returns `503` and does not save the item. If matching fails after insertion, the item remains saved with `matching_status: "failed"`; retry with `POST /items/{item_id}/match`. Item responses expose `matching_status` as `pending`, `completed`, or `failed`.
-
-## End-to-end example
-
-With the API running locally and `jq` installed, the following creates separate finder and owner accounts, files a found and a lost report, reads the resulting match conversation, sends a message, and reads it as the other member:
+Register or log in to obtain a token, then load `GET /metadata` and select one of its configured location names. `Library` below is only an example placeholder; replace it unless that exact name is in the returned dropdown. Submit new and seed reports through this route so the backend requests and saves each embedding:
 
 ```sh
-API=http://127.0.0.1:8000
-
-FINDER=$(curl -sS "$API/auth/register" -H 'Content-Type: application/json' \
-  -d '{"email":"finder@example.com","password":"correct-horse-battery","display_name":"Finder"}')
-OWNER=$(curl -sS "$API/auth/register" -H 'Content-Type: application/json' \
-  -d '{"email":"owner@example.com","password":"another-correct-horse","display_name":"Owner"}')
-FINDER_TOKEN=$(printf '%s' "$FINDER" | jq -r .access_token)
-OWNER_TOKEN=$(printf '%s' "$OWNER" | jq -r .access_token)
-
-FOUND=$(curl -sS "$API/items" -H "Authorization: Bearer $FINDER_TOKEN" \
-  -H 'Content-Type: application/json' -d '{
-    "kind":"found","title":"Blue backpack","description":"Blue canvas backpack with a silver pin",
-    "category":"bags","attributes":{"color":"blue","material":"canvas"},
-    "images":["https://example.com/backpack.jpg"],
-    "location":{"type":"Point","coordinates":[-73.9857,40.7484]}
-  }')
-LOST=$(curl -sS "$API/items" -H "Authorization: Bearer $OWNER_TOKEN" \
-  -H 'Content-Type: application/json' -d '{
-    "kind":"lost","title":"Blue backpack","description":"I lost a blue canvas bag with a small silver pin",
-    "category":"bags","attributes":{"color":"blue","material":"canvas"},
-    "location":{"type":"Point","coordinates":[-73.9858,40.7485]}
-  }')
-LOST_ID=$(printf '%s' "$LOST" | jq -r .id)
-
-MATCHES=$(curl -sS "$API/items/$LOST_ID/matches" -H "Authorization: Bearer $OWNER_TOKEN")
-CONVERSATION_ID=$(printf '%s' "$MATCHES" | jq -r '.[0].id')
-curl -sS -X POST "$API/conversations/$CONVERSATION_ID/messages" \
-  -H "Authorization: Bearer $OWNER_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"body":"I think this may be mine. Can you confirm where you found it?"}'
-curl -sS "$API/conversations/$CONVERSATION_ID/messages" \
-  -H "Authorization: Bearer $FINDER_TOKEN"
+curl -X POST http://127.0.0.1:8000/items \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"lost","title":"Blue backpack","description":"Blue canvas backpack left in the library.","category":"Bags","location":"Library","eventDate":"2026-10-03T12:30:00+00:00"}'
 ```
 
-For successful matching, the actual item descriptions, category, attributes, and locations must produce a score at or above the configured threshold. Check the returned item `matching_status` and `GET /items/{item_id}/matches` rather than assuming every pair qualifies.
+The response includes the saved report ID (as `_id`) and `matchingStatus`, but not its embedding. To request matches for that owned report, call `GET /items/{id}/matches`; it returns candidate report details, score, and conversation.
 
-## Storage and deployment notes
+## Matching lifecycle
 
-MongoDB indexes support unique account emails, item status/kind and owner/time listings, geospatial and text search, unique lost/found conversation pairs, conversation membership listings, and chronological messages. MongoDB Atlas is not required; any compatible MongoDB deployment can be configured with `MONGODB_URI` and `MONGODB_DATABASE`.
+On `POST /items`, the backend calls the AI embedding endpoint before inserting the report. If that request or its response fails, the API returns `503` and inserts no report. On success, the returned embedding is stored on the report in the `items` collection. The backend then asks the AI service for candidate IDs and scores. It validates each candidate against MongoDB: it must exist, be open, have the opposite report type, and belong to a different user. Scores **at or above 0.90** auto-link users in a private conversation; exactly 0.90 qualifies. `MATCH_THRESHOLD` may be raised but not lowered below 0.90. Conversation creation is idempotent via a unique pair index. The score is supplied by the AI service; it is not described as a probability.
 
-This backend does not include production rate limiting, TLS termination, backups, password reset, or image upload/visual analysis. Configure production network security and operations separately; do not use the unauthenticated local Compose database in production.
+If matching fails after insertion, the report stays saved and has `matchingStatus: "failed"`; the create response still contains the saved report. Retry with `POST /items/{item_id}/match`. Successful matching records `matchingStatus: "completed"`. This internal matching status is separate from report `status`. `GET /items/{item_id}/matches` asks the AI service again and returns matching report details, score, and conversation; it is owner-only. Embeddings are private stored data and are never returned in report API responses.
+
+See [AI_CONTRACT.md](AI_CONTRACT.md) for the proposed wire protocol and agreements that still need confirmation from the AI-service teammate.
+
+## Image attachments (GridFS)
+
+Images are stored in `images.files` and `images.chunks` in the same MongoDB database. Report `images` contains protected relative API URLs, never base64 data or third-party URLs.
+
+| Method and path | Access |
+| --- | --- |
+| `POST /items/{id}/images` | Report owner; multipart field named `file`. |
+| `GET /items/{id}/images` | Owner or participant in a match scoring at least 90%; returns attachment metadata. |
+| `GET /items/{id}/images/{imageId}` | Same access; streams the image bytes. |
+
+Up to eight images per report, each at most 5 MiB and 20 million pixels. JPEG, PNG, and WebP are supported; SVG, animated files, and invalid image content are rejected. Images are re-encoded to remove EXIF metadata such as GPS coordinates. Upload names and declared MIME types are not trusted. An upload failure leaves the report saved, so retry only the attachment. Successful uploads return `id`, `url`, `contentType`, and `size`.
+
+```sh
+curl -X POST "http://127.0.0.1:8000/items/$ITEM_ID/images" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" -F 'file=@photo.jpg'
+curl "http://127.0.0.1:8000/items/$ITEM_ID/images" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+The frontend should fetch the returned `url` with the bearer header and display a blob URL; a plain `<img src>` cannot supply that header. A finder linked to the lost report with a score of at least 90% can use these same read endpoints; unrelated accounts receive `404`. Existing conversation participants retain image access after a report is marked matched/returned. This does not send image content to the AI service: its embedding request still contains only title and description. Configure a reverse-proxy request-body limit and rate limiting in production, since multipart parsing occurs before application validation. Legacy external image URLs are not served or fetched by these routes.
+
+## Existing data
+
+Update any old `.env` using `MATCH_THRESHOLD=0.78` to `0.90` or higher; lower thresholds now fail configuration validation. Existing external image URLs are not migrated into GridFS. Owners must upload the actual files using the new attachment route.
+
+There is no automatic migration for the previous report format (for example `kind`, `owner_id`, `created_at`, `resolved`, or GeoJSON `Point` locations). Existing documents may require a deliberate migration to the current field names, status values, location shape, and BSON dates, and reports need embeddings generated by the AI service before they can participate in matching. Do not bulk-convert or seed guessed data. Create reports through `POST /items` so the backend requests and stores each embedding.
+
+The previous `location_2dsphere` index expects GeoJSON and can reject the new location shape. Before using an existing database, back it up and plan the report migration. An administrator should inspect `db.items.getIndexes()` and deliberately remove that obsolete index with `db.items.dropIndex("location_2dsphere")` after confirming it is no longer used. Startup does not drop indexes or rewrite shared data. The new nearby search uses the `location.coordinates` 2d index and `$geoWithin`/`$centerSphere`; results are ordered by creation time, not distance.
+
+Authenticated users can see listings and their locations; only conversation members can read or send messages. Production rate limiting, password reset, TLS termination, and backups remain deployment work.
