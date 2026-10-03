@@ -1,4 +1,5 @@
 #!/bin/sh
 set -eu
-cd frontend
+repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$repo_root/frontend"
 npm ci

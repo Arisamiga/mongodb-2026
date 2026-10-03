@@ -182,7 +182,7 @@ export function ReportForm() {
                     </div>
                 )}
                 <button
-                    className="button primary submit-button"
+                    className={`button ${type === "LOST" ? "report-lost" : "report-found"} submit-button`}
                     disabled={busy}
                 >
                     {busy ? (
