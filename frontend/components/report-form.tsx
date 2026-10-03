@@ -2,26 +2,30 @@
 import {useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {
-    PackageX,
-    HandHeart,
     ArrowRight,
     LoaderCircle,
     ShieldCheck,
-    ImagePlus,
     CheckCircle2,
 } from "lucide-react";
 import {categories} from "@/lib/types";
 import {saveItem} from "@/lib/store";
+import {LocationInput} from "@/components/location-input";
+import {PhotoInput} from "@/components/photo-input";
 export function ReportForm() {
     const params = useSearchParams();
-    const [type, setType] = useState(
-        params.get("type") === "FOUND" ? "FOUND" : "LOST",
-    );
+    const type = params.get("type") === "FOUND" ? "FOUND" : "LOST";
+    return <ReportDetails key={type} type={type} />;
+}
+
+function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [photos, setPhotos] = useState<string[]>([]);
+    const [photosBusy, setPhotosBusy] = useState(false);
     async function submit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (photosBusy) return;
         setBusy(true);
         setError("");
         const form = event.currentTarget;
@@ -29,17 +33,19 @@ export function ReportForm() {
         try {
             saveItem({
                 title: payload.title,
-                type: type as "LOST" | "FOUND",
+                type,
                 category: payload.category as (typeof categories)[number],
                 description: payload.description,
                 location: payload.location,
+                coordinates: [Number(payload.longitude), Number(payload.latitude)],
                 eventDate: payload.eventDate,
                 contactEmail: payload.contactEmail,
-                imageUrl: payload.imageUrl,
+                imageUrl: photos[0] ?? "",
+                photos,
             });
             setSubmitted(true);
         } catch {
-            setError("Your browser could not save this report. Check that local storage is available and try again.");
+            setError("Your browser could not save this report. Storage may be full or unavailable. Try removing photos and saving again.");
             setBusy(false);
         }
     }
@@ -57,44 +63,6 @@ export function ReportForm() {
     return (
         <form onSubmit={submit} className="report-form">
             <fieldset disabled={busy}>
-                <legend className="field-heading">
-                    First, what brings you here?
-                </legend>
-                <div className="type-picker">
-                    {[
-                        [
-                            "LOST",
-                            PackageX,
-                            "I lost something",
-                            "Let’s help you find it.",
-                        ],
-                        [
-                            "FOUND",
-                            HandHeart,
-                            "I found something",
-                            "Let’s get it home.",
-                        ],
-                    ].map(([value, Icon, title, copy]) => {
-                        const I = Icon as typeof PackageX;
-                        return (
-                            <button
-                                key={String(value)}
-                                type="button"
-                                className={`${String(value).toLowerCase()} ${type === value ? "chosen" : ""}`}
-                                aria-pressed={type === value}
-                                onClick={() => setType(String(value))}
-                            >
-                                <I size={23} />
-                                <span>
-                                    <strong>{String(title)}</strong>
-                                    <small>{String(copy)}</small>
-                                </span>
-                                <i />
-                            </button>
-                        );
-                    })}
-                </div>
-                <div className="form-divider" />
                 <h2>The little details matter.</h2>
                 <p className="form-intro">
                     Add the details you want to keep with this report. All
@@ -132,16 +100,7 @@ export function ReportForm() {
                         />
                     </label>
                 </div>
-                <label>
-                    Where was it {type.toLowerCase()}?
-                    <input
-                        required
-                        name="location"
-                        minLength={3}
-                        maxLength={160}
-                        placeholder="e.g. O’Reilly Library, DCU"
-                    />
-                </label>
+                <LocationInput label={`Where was it ${type.toLowerCase()}?`} />
                 <label>
                     Description
                     <textarea
@@ -153,22 +112,7 @@ export function ReportForm() {
                         placeholder="Color, brand, and anything that makes it unique. Keep one identifying detail private for a safe handover."
                     />
                 </label>
-                <label>
-                    <span className="inline-label">
-                        <ImagePlus size={16} />
-                        Photo URL <span className="optional">(optional)</span>
-                    </span>
-                    <input
-                        name="imageUrl"
-                        type="url"
-                        maxLength={2048}
-                        placeholder="https://…"
-                    />
-                    <small>
-                        Add a publicly accessible HTTPS image link. Avoid photos
-                        of IDs or personal details.
-                    </small>
-                </label>
+                <PhotoInput photos={photos} onChange={setPhotos} onBusy={setPhotosBusy} />
                 <div className="form-divider" />
                 <label>
                     Your email
@@ -195,7 +139,7 @@ export function ReportForm() {
                 )}
                 <button
                     className={`button ${type === "LOST" ? "report-lost" : "report-found"} submit-button`}
-                    disabled={busy}
+                    disabled={busy || photosBusy}
                 >
                     {busy ? (
                         <>
