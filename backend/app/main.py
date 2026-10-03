@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from bson import ObjectId
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from gridfs import GridFS
@@ -204,6 +205,18 @@ def create_app(*, database=None, ai_client=None, settings=None):
         logger.error("MongoDB request failed: %s", type(error).__name__)
         return JSONResponse(status_code=503, content={"detail": "Database temporarily unavailable"})
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, error: RequestValidationError):
+        # Invalid inputs can contain non-JSON floats or private values; don't echo them.
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": [
+                    {key: entry[key] for key in ("type", "loc", "msg")} for entry in error.errors()
+                ],
+            },
+        )
+
     @app.get("/health")
     def health(request: Request):
         request.app.state.db.command("ping")
@@ -216,10 +229,6 @@ def create_app(*, database=None, ai_client=None, settings=None):
         return {
             "categories": get_args(Category),
             "statuses": get_args(ReportStatus),
-            "locations": [
-                place.model_dump(mode="json")
-                for place in request.app.state.settings.campus_locations
-            ],
         }
 
     @app.post("/auth/register", response_model=TokenOut, status_code=201)
@@ -257,16 +266,10 @@ def create_app(*, database=None, ai_client=None, settings=None):
 
     @app.post("/items", response_model=ItemOut, status_code=201)
     def create_item(payload: ItemCreate, request: Request, user=Depends(current_user)):
-        locations = request.app.state.settings.campus_locations
-        if not locations:
-            raise HTTPException(503, "Campus locations are not configured")
-        location = next((place for place in locations if place.name == payload.location), None)
-        if location is None:
-            raise HTTPException(422, "Select a location from /metadata")
         item = {
             **payload.model_dump(mode="python", exclude={"location"}),
             "images": [],
-            "location": location.model_dump(mode="json"),
+            "location": payload.location.model_dump(mode="json"),
             "_id": str(uuid4()),
             "userId": user["_id"],
             "status": "open",

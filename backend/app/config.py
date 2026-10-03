@@ -1,8 +1,6 @@
 from pydantic import Field, HttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.schemas import CampusLocation
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -17,16 +15,7 @@ class Settings(BaseSettings):
     ai_matches_path: str = "/matches"
     ai_timeout_seconds: float = Field(default=30, gt=0, le=120)
     ai_service_token: str | None = None
-    campus_locations: list[CampusLocation] = Field(default_factory=list, max_length=50)
     cors_origins: list[str] = []
-
-    @field_validator("campus_locations")
-    @classmethod
-    def unique_locations(cls, locations):
-        names = [location.name for location in locations]
-        if len(names) != len(set(names)):
-            raise ValueError("Campus location names must be unique")
-        return locations
 
     @field_validator("ai_embedding_path", "ai_matches_path")
     @classmethod
