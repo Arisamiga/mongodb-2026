@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import Link from "next/link";
-import {ScanLine, ArrowUpRight, Heart} from "lucide-react";
+import {ArrowUpRight, Heart} from "lucide-react";
+import {Brand} from "@/components/brand";
 import {Nav} from "@/components/nav";
 import "./globals.css";
 
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
     },
     description:
         "A little community. A lot of possibility. Report lost and found items and help good things find their way home.",
+    icons: {icon: "/brand/boomerang-mark.png"},
 };
 export default function RootLayout({children}: {children: React.ReactNode}) {
     return (
@@ -24,10 +26,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                 <footer>
                     <div className="container footer-top">
                         <Link href="/" className="brand">
-                            <span className="logo small">
-                                <ScanLine size={19} />
-                            </span>
-                            Boomerang
+                            <Brand />
                         </Link>
                         <span>Good things find their way back.</span>
                         <Link href="/report">

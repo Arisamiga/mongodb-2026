@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {ScanLine, Plus, Menu, X} from "lucide-react";
+import {Plus, Menu, X} from "lucide-react";
+import {Brand} from "@/components/brand";
 import {useState} from "react";
 export function Nav() {
     const pathname = usePathname();
@@ -10,10 +11,7 @@ export function Nav() {
         <header className="nav">
             <div className="container nav-inner">
                 <Link href="/" className="brand">
-                    <span className="logo">
-                        <ScanLine size={24} />
-                    </span>
-                    Boomerang
+                    <Brand />
                 </Link>
                 <nav
                     className={open ? "nav-links open" : "nav-links"}

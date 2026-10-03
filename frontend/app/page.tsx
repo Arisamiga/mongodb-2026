@@ -7,8 +7,6 @@ import {
     Sparkles,
     MapPin,
     Check,
-    ScanLine,
-    HandHeart,
     ClipboardList,
     HeartHandshake,
     ShieldCheck,
@@ -53,16 +51,16 @@ export default function Home() {
                     <div className="hero-actions">
                         <Link
                             href="/report?type=LOST"
-                            className="button primary"
+                            className="button report-lost"
                         >
-                            <Search size={17} />I lost something
+                            <Search size={17} />Report Lost
                             <ArrowUpRight size={17} />
                         </Link>
                         <Link
                             href="/report?type=FOUND"
-                            className="button secondary"
+                            className="button report-found"
                         >
-                            <Plus size={18} />I found something
+                            <Plus size={18} />Report Found
                         </Link>
                     </div>
                     <div className="hero-note">
@@ -74,10 +72,7 @@ export default function Home() {
                         Made for everyone
                     </div>
                 </div>
-                <div
-                    className="hero-art"
-                    aria-label="Illustration of a found backpack waiting to go home"
-                >
+                <div className="hero-art">
                     <div className="orbit orbit-one" />
                     <div className="orbit orbit-two" />
                     <span className="art-spark spark-one">✳</span>
@@ -91,36 +86,13 @@ export default function Home() {
                             <small>Your community has your back</small>
                         </div>
                     </div>
-                    <div className="hero-product">
-                        <div className="product-image">
-                            <img
-                                src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=850&q=90"
-                                alt="Navy canvas backpack"
-                            />
-                            <span className="badge found">
-                                <i />
-                                FOUND
-                            </span>
-                            <span className="product-scan">
-                                <ScanLine size={23} />
-                            </span>
-                        </div>
-                        <div className="product-caption">
-                            <div>
-                                <span className="eyebrow">
-                                    A LITTLE HELP GOES A LONG WAY
-                                </span>
-                                <h3>Someone’s day, made.</h3>
-                                <p>
-                                    <MapPin size={13} />
-                                    Right here in your community
-                                </p>
-                            </div>
-                            <span className="round-heart">
-                                <HandHeart size={22} />
-                            </span>
-                        </div>
-                    </div>
+                    <img
+                        className="boomerang-illustration"
+                        src="/brand/boomerang-mark.png"
+                        width={1080}
+                        height={1157}
+                        alt="A colorful boomerang circling back toward a location pin"
+                    />
                     <div className="floating-note bottom-note">
                         <span className="success-icon">
                             <Check size={20} />
