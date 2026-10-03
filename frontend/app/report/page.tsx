@@ -11,7 +11,7 @@ export default function Page() {
                     <br />
                     <span>A world of possibility.</span>
                 </h1>
-                <p>Tell your community what you’ve lost or found.</p>
+                <p>Record the details of something you’ve lost or found.</p>
             </div>
             <Suspense fallback={<div className="skeleton" />}>
                 <ReportForm />
