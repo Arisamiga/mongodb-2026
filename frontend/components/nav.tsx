@@ -24,6 +24,7 @@ export function Nav() {
                         Found
                     </Link>
                 </nav>
+                <div className="nav-utilities">
                     <button
                         type="button"
                         className="button chat-trigger nav-action"
@@ -34,6 +35,10 @@ export function Nav() {
                         <MessageCircle size={16} />
                         Chat
                     </button>
+                    <span className="user-avatar" role="img" aria-label="Signed in as Alex Rivera (demo)" title="Alex Rivera (demo)">
+                        AR
+                    </span>
+                </div>
             </div>
             {chatOpen && (
                 <aside className="demo-chat" id="demo-chat-panel" aria-label="Demo chat">
