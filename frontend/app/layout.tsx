@@ -2,14 +2,12 @@ import type {Metadata} from "next";
 import Link from "next/link";
 import {ScanLine, ArrowUpRight, Heart} from "lucide-react";
 import {Nav} from "@/components/nav";
-import {isDemo} from "@/lib/items";
 import "./globals.css";
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
     title: {
-        default: "Lost&Found AI — Good things find their way back",
-        template: "%s | Lost&Found AI",
+        default: "Boomerang — Good things find their way back",
+        template: "%s | Boomerang",
     },
     description:
         "A little community. A lot of possibility. Report lost and found items and help good things find their way home.",
@@ -22,12 +20,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                     Skip to content
                 </a>
                 <Nav />
-                {isDemo() && (
-                    <div className="demo-bar">
-                        Demo workspace · Sample listings and reports are stored
-                        locally.
-                    </div>
-                )}
                 <main id="main">{children}</main>
                 <footer>
                     <div className="container footer-top">
@@ -35,7 +27,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                             <span className="logo small">
                                 <ScanLine size={19} />
                             </span>
-                            Lost&Found <span className="ai-tag">AI</span>
+                            Boomerang
                         </Link>
                         <span>Good things find their way back.</span>
                         <Link href="/report">
@@ -43,10 +35,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
                         </Link>
                     </div>
                     <div className="container footer-bottom">
-                        <span>© {new Date().getFullYear()} Lost&Found AI</span>
+                        <span>© {new Date().getFullYear()} Boomerang</span>
                         <span>
-                            Built for community, with <Heart size={12} /> and
-                            MongoDB.
+                            Built for community, with <Heart size={12} />.
                         </span>
                     </div>
                 </footer>

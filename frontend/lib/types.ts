@@ -25,9 +25,3 @@ export type Item = ItemInput & {
     updatedAt: string;
     schemaVersion: 1;
 };
-export type PublicItem = Omit<Item, "contactEmail">;
-export function publicItem(item: Item): PublicItem {
-    const {contactEmail, ...rest} = item;
-    void contactEmail;
-    return rest;
-}

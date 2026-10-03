@@ -1,8 +1,8 @@
 import Link from "next/link";
 import {MapPin, ArrowUpRight, CalendarDays} from "lucide-react";
-import type {PublicItem} from "@/lib/types";
+import type {Item} from "@/lib/types";
 import {ItemPhoto} from "./item-photo";
-export function ItemCard({item}: {item: PublicItem}) {
+export function ItemCard({item}: {item: Item}) {
     return (
         <Link href={`/items/${item.id}`} className="item-card">
             <div className="item-image">

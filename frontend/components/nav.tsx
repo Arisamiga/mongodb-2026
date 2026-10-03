@@ -13,7 +13,7 @@ export function Nav() {
                     <span className="logo">
                         <ScanLine size={24} />
                     </span>
-                    Lost&Found <span className="ai-tag">AI</span>
+                    Boomerang
                 </Link>
                 <nav
                     className={open ? "nav-links open" : "nav-links"}
