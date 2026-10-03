@@ -39,9 +39,12 @@ def test_account_authentication_and_password_storage(client, db):
         json={"email": "ALICE@example.com", "password": "long-test-password"},
     )
     assert login.status_code == 200
-    assert client.get(
-        "/auth/me", headers={"Authorization": "Bearer " + login.json()["access_token"]}
-    ).status_code == 200
+    assert (
+        client.get(
+            "/auth/me", headers={"Authorization": "Bearer " + login.json()["access_token"]}
+        ).status_code
+        == 200
+    )
 
 
 def test_missing_invalid_and_expired_credentials(client, settings):
@@ -63,16 +66,25 @@ def test_missing_invalid_and_expired_credentials(client, settings):
 
 def test_password_whitespace_is_preserved(client):
     password = "  long-test-password  "
-    assert client.post(
-        "/auth/register",
-        json={"email": "spaces@example.com", "password": password, "display_name": "Spaces"},
-    ).status_code == 201
-    assert client.post(
-        "/auth/login", json={"email": "spaces@example.com", "password": password}
-    ).status_code == 200
-    assert client.post(
-        "/auth/login", json={"email": "spaces@example.com", "password": password.strip()}
-    ).status_code == 401
+    assert (
+        client.post(
+            "/auth/register",
+            json={"email": "spaces@example.com", "password": password, "display_name": "Spaces"},
+        ).status_code
+        == 201
+    )
+    assert (
+        client.post(
+            "/auth/login", json={"email": "spaces@example.com", "password": password}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/auth/login", json={"email": "spaces@example.com", "password": password.strip()}
+        ).status_code
+        == 401
+    )
 
 
 def test_report_uses_shared_schema_and_stores_bson_dates(client, db):
@@ -83,13 +95,13 @@ def test_report_uses_shared_schema_and_stores_bson_dates(client, db):
     report = response.json()
     assert report["type"] == "lost"
     assert report["userId"] == user["id"]
-    assert report["location"] == {"name": "Library", "coordinates": [-0.12, 51.5]}
+    assert report["location"] == {"coordinates": [-0.12, 51.5]}
     assert "_id" in report and "id" not in report
     assert {"createdAt", "eventDate", "matchingStatus"} <= report.keys()
     assert "embedding" not in report
     stored = db.items.find_one({"_id": report["_id"]})
     assert stored["type"] == "lost" and stored["userId"] == user["id"]
-    assert stored["location"] == {"name": "Library", "coordinates": [-0.12, 51.5]}
+    assert stored["location"] == {"coordinates": [-0.12, 51.5]}
     assert isinstance(stored["createdAt"], datetime)
     assert isinstance(stored["eventDate"], datetime)
     assert stored["eventDate"].replace(tzinfo=timezone.utc) == datetime(
@@ -97,7 +109,8 @@ def test_report_uses_shared_schema_and_stores_bson_dates(client, db):
     )
     assert isinstance(stored["embedding"], list)
     assert client.app.state.ai_client.embedding_calls[-1] == (
-        payload["title"], payload["description"]
+        payload["title"],
+        payload["description"],
     )
 
 
@@ -127,9 +140,7 @@ def test_matches_return_item_score_and_private_idempotent_conversation(client, d
     outsider, _ = account(client, "outsider@example.com")
     first = create_item(client, alice, first_type)
     assert client.get("/conversations", headers=alice).json() == []
-    second = create_item(
-        client, bob, "lost" if first_type == "found" else "found"
-    )
+    second = create_item(client, bob, "lost" if first_type == "found" else "found")
     assert "embedding" not in second
 
     ai_client = client.app.state.ai_client
@@ -145,7 +156,8 @@ def test_matches_return_item_score_and_private_idempotent_conversation(client, d
     conversation = matches[0]["conversation"]
     assert "components" not in conversation and "score" in conversation
     assert {member["id"] for member in conversation["members"]} == {
-        alice_user["id"], bob_user["id"]
+        alice_user["id"],
+        bob_user["id"],
     }
     assert all(set(member) == {"id", "display_name"} for member in conversation["members"])
 
@@ -159,18 +171,17 @@ def test_matches_return_item_score_and_private_idempotent_conversation(client, d
     assert client.get("/conversations", headers=outsider).json() == []
     assert client.get(channel, headers=outsider).status_code == 404
     assert client.get(channel + "/messages", headers=outsider).status_code == 404
-    assert client.post(
-        channel + "/messages", headers=outsider, json={"body": "intrude"}
-    ).status_code == 404
+    assert (
+        client.post(channel + "/messages", headers=outsider, json={"body": "intrude"}).status_code
+        == 404
+    )
     message = client.post(
         channel + "/messages", headers=alice, json={"body": "I found your wallet!"}
     )
     assert message.status_code == 201
     assert message.json()["sender_id"] == alice_user["id"]
     assert client.get(channel + "/messages", headers=bob).json() == [message.json()]
-    assert client.post(
-        channel + "/messages", headers=bob, json={"body": "  "}
-    ).status_code == 422
+    assert client.post(channel + "/messages", headers=bob, json={"body": "  "}).status_code == 422
 
 
 def test_ai_matches_are_validated_and_low_scores_and_duplicates_are_ignored(client, db):
@@ -184,9 +195,7 @@ def test_ai_matches_are_validated_and_low_scores_and_duplicates_are_ignored(clie
     returned = create_item(client, carol, "found")
     db.items.update_one({"_id": returned["_id"]}, {"$set": {"status": "returned"}})
     missing_user = create_item(client, carol, "found")
-    db.items.update_one(
-        {"_id": missing_user["_id"]}, {"$set": {"userId": "deleted-account"}}
-    )
+    db.items.update_one({"_id": missing_user["_id"]}, {"$set": {"userId": "deleted-account"}})
     db.conversations.delete_many({})
     fake = client.app.state.ai_client
     fake.find_matches = lambda item_id: [
@@ -206,7 +215,8 @@ def test_ai_matches_are_validated_and_low_scores_and_duplicates_are_ignored(clie
     assert [result["item"]["_id"] for result in results] == [valid["_id"]]
     assert results[0]["score"] == pytest.approx(0.95)
     assert {member["id"] for member in results[0]["conversation"]["members"]} == {
-        alice_user["id"], bob_user["id"]
+        alice_user["id"],
+        bob_user["id"],
     }
     assert carol_user["id"] not in {
         member["id"] for member in results[0]["conversation"]["members"]
@@ -234,21 +244,29 @@ def test_owner_permissions_and_returned_reports_do_not_rematch(client):
     assert client.get("/items/missing", headers=alice).status_code == 404
 
 
-def test_unconfigured_campus_locations_reject_report_creation(db):
+def test_submitted_coordinates_work_without_location_configuration(db):
     from conftest import FakeAIClient
 
     from app.config import Settings
 
-    settings = Settings(
-        jwt_secret="test-only-secret-with-at-least-32-characters", _env_file=None
-    )
+    settings = Settings(jwt_secret="test-only-secret-with-at-least-32-characters", _env_file=None)
     with TestClient(
         create_app(database=db, ai_client=FakeAIClient(db), settings=settings)
     ) as empty_client:
         alice, _ = account(empty_client)
-        response = empty_client.post("/items", headers=alice, json=item_payload())
-        assert response.status_code == 503
-        assert response.json() == {"detail": "Campus locations are not configured"}
+        coordinates = [139.6917, 35.6895]
+        response = empty_client.post(
+            "/items",
+            headers=alice,
+            json=item_payload(
+                location={"coordinates": coordinates},
+            ),
+        )
+        assert response.status_code == 201
+        assert response.json()["location"] == {"coordinates": coordinates}
+        assert db.items.find_one({"_id": response.json()["_id"]})["location"] == {
+            "coordinates": coordinates,
+        }
 
 
 def test_metadata_and_listing_filters(client):
@@ -257,23 +275,29 @@ def test_metadata_and_listing_filters(client):
     metadata = client.get("/metadata", headers=alice)
     assert metadata.status_code == 200, metadata.text
     assert metadata.json()["categories"] == [
-        "Electronics", "Clothing", "Bags", "Keys", "Cards and IDs", "Books", "Other"
+        "Electronics",
+        "Clothing",
+        "Bags",
+        "Keys",
+        "Cards and IDs",
+        "Books",
+        "Other",
     ]
     assert metadata.json()["statuses"] == ["open", "matched", "returned"]
-    assert metadata.json()["locations"] == [
-        {"name": "Library", "coordinates": [-0.12, 51.5]},
-        {"name": "Gym", "coordinates": [2.35, 48.85]},
-    ]
+    assert "locations" not in metadata.json()
     returned = create_item(client, alice, "found", category="Electronics")
-    create_item(client, bob, "lost", category="Books", location="Gym")
+    create_item(client, bob, "lost", category="Books", location={"coordinates": [2.35, 48.85]})
     assert len(client.get("/items", headers=alice).json()) == 2
     assert len(client.get("/items?mine=true", headers=alice).json()) == 1
     assert len(client.get("/items?type=lost&category=Books", headers=alice).json()) == 1
     assert len(client.get("/items?category=Electronics", headers=alice).json()) == 1
     assert len(client.get("/items?limit=1&offset=1", headers=alice).json()) == 1
-    assert client.patch(
-        f"/items/{returned['_id']}", headers=alice, json={"status": "returned"}
-    ).status_code == 200
+    assert (
+        client.patch(
+            f"/items/{returned['_id']}", headers=alice, json={"status": "returned"}
+        ).status_code
+        == 200
+    )
     assert len(client.get("/items", headers=alice).json()) == 1
     assert len(client.get("/items?status=returned", headers=alice).json()) == 1
     for query in ["limit=101", "type=other", "status=resolved"]:
@@ -384,23 +408,36 @@ def test_openapi_and_config(client, settings):
     assert create_app(settings=settings).title == "Lost&Found AI API"
 
 
-def test_campus_environment_rejects_duplicate_names_but_allows_shared_coordinates(monkeypatch):
-    from pydantic import ValidationError
+@pytest.mark.parametrize(
+    "coordinates",
+    [
+        [181, 0],
+        [0, 91],
+        [-181, 0],
+        [0, -91],
+        [0],
+        [0, 0, 0],
+        [True, 0],
+        ["1", 0],
+        [None, 0],
+        [float("inf"), 0],
+        [0, float("nan")],
+    ],
+)
+def test_invalid_submission_coordinates_rejected(client, coordinates):
+    import json
 
-    from app.config import Settings
-
-    monkeypatch.setenv(
-        "CAMPUS_LOCATIONS",
-        '[{"name":"Library","coordinates":[-0.12,51.5]},'
-        '{"name":"Gym","coordinates":[-0.12,51.5]}]',
+    headers, _ = account(client)
+    response = client.post(
+        "/items",
+        headers={**headers, "Content-Type": "application/json"},
+        content=json.dumps(item_payload(location={"coordinates": coordinates})),
     )
-    settings = Settings(jwt_secret="test-only-secret-with-at-least-32-characters", _env_file=None)
-    assert settings.campus_locations[0].coordinates == settings.campus_locations[1].coordinates
+    assert response.status_code == 422
 
-    monkeypatch.setenv(
-        "CAMPUS_LOCATIONS",
-        '[{"name":"Library","coordinates":[-0.12,51.5]},'
-        '{"name":"Library","coordinates":[2.35,48.85]}]',
-    )
-    with pytest.raises(ValidationError):
-        Settings(jwt_secret="test-only-secret-with-at-least-32-characters", _env_file=None)
+
+@pytest.mark.parametrize("coordinates", [[0, 0], [-180, -90], [180, 90]])
+def test_coordinate_boundaries_are_valid(client, coordinates):
+    headers, _ = account(client)
+    report = create_item(client, headers, location={"coordinates": coordinates})
+    assert report["location"] == {"coordinates": coordinates}

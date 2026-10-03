@@ -66,10 +66,6 @@ def db():
 def settings():
     return Settings(
         jwt_secret="test-only-secret-with-at-least-32-characters",
-        campus_locations=[
-            {"name": "Library", "coordinates": [-0.12, 51.5]},
-            {"name": "Gym", "coordinates": [2.35, 48.85]},
-        ],
         _env_file=None,
     )
 
@@ -102,7 +98,7 @@ def item_payload(report_type="found", **changes):
         "description": "A small black wallet",
         "category": "Electronics",
         "attributes": {"color": "black", "material": "leather"},
-        "location": "Library",
+        "location": {"coordinates": [-0.12, 51.5]},
         "eventDate": datetime.now(timezone.utc).isoformat(),
         **changes,
     }

@@ -58,7 +58,7 @@ Authorization: Bearer <AI_SERVICE_TOKEN>  # only when configured
 }
 ```
 
-Each comparison sends the saved report's type (which selects the opposite search side), title and description (embedding text), category (category score), longitude-first coordinates (location score), timezone-qualified event date/time (time score), and authenticated owner's identifier (exclude their own reports). `itemId` is retained for correlation with the stored report. BSON dates are serialized to ISO 8601 for HTTP JSON; the database still stores real dates. Coordinates come from the configured campus dropdown, and `userId` comes from the account rather than client input. Image bytes, image URLs, embeddings, and account details are not sent in this request. Endpoint paths and response format still need confirmation from the teammate.
+Each comparison sends the saved report's type (which selects the opposite search side), title and description (embedding text), category (category score), longitude-first coordinates (location score), timezone-qualified event date/time (time score), and authenticated owner's identifier (exclude their own reports). `itemId` is retained for correlation with the stored report. BSON dates are serialized to ISO 8601 for HTTP JSON; the database still stores real dates. Coordinates are supplied with the report and validated by the backend; `userId` comes from the account rather than client input. Image bytes, image URLs, embeddings, and account details are not sent in this request. Endpoint paths and response format still need confirmation from the teammate.
 
 Expected success response:
 
@@ -80,17 +80,14 @@ Report creation is authenticated; `userId` is derived from the caller and must n
 
 The `items` collection is hardcoded. `MONGODB_DATABASE` currently defaults to `lost_found`; agree with the teammate on the shared database name before connecting to Atlas. The Atlas URI is supplied privately as `MONGODB_URI` and must not be committed. `createdAt` is backend-assigned. `eventDate` must arrive as an ISO 8601 date-time with timezone; both values are persisted as BSON dates rather than strings. Report IDs are currently UUID strings; serialization/lookup supports ObjectId-form IDs as well, so the match service must treat `itemId` as an opaque string and echo valid report IDs exactly.
 
-Location is not arbitrary user text or GeoJSON in the current API. Each `CAMPUS_LOCATIONS` entry has this structure: `{"name":"<agreed campus place>","coordinates":[longitude,latitude]}`. Replace the placeholders with the actual agreed place name and numeric coordinates; the repository intentionally does not guess campus coordinates.
+Report creation accepts `"location": {"coordinates": [longitude, latitude]}` directly and persists that same shape. Longitude must be a finite number in -180..180, latitude in -90..90. No named/custom locations, campus dropdown, or location environment configuration are used.
 
-Coordinates are longitude first, latitude second. API report creation accepts the selected place's exact `name`; the backend persists the full `{ "name": "...", "coordinates": [longitude, latitude] }` object. The example environment intentionally configures no places. The actual roughly ten place names and coordinates are not in repository documentation and must be supplied/confirmed by the project teammates; do not invent them.
-
-`GET /metadata` (authenticated) provides the backend's current `categories`, `statuses`, and configured `locations` for clients to populate consistently. Image files are attached separately through the backend's authenticated GridFS upload route; `images` stores protected API URLs. String attributes remain optional report data. Embedding generation currently receives only title and description, not image bytes; an image-aware AI contract remains future work.
+`GET /metadata` (authenticated) provides the backend's current `categories` and `statuses` for clients to populate consistently. Image files are attached separately through the backend's authenticated GridFS upload route; `images` stores protected API URLs. String attributes remain optional report data. Embedding generation currently receives only title and description, not image bytes; an image-aware AI contract remains future work.
 
 ## Operational agreements and gaps
 
 - Confirm the two endpoint paths, request/response schemas, vector dimensions, service URL/network, and token arrangement with the AI teammate; the shapes documented here describe the backend's current expectations, not mutual confirmation.
 - Confirm the shared Atlas database name. Current default is `lost_found`; the item collection name is `items`.
-- Populate the real campus dropdown and coordinates in `CAMPUS_LOCATIONS`; none are supplied by this repository.
 - The backend currently has no automatic migration for old report documents or automatic embedding backfill. Existing legacy fields/locations and unembedded reports need a planned migration; new or seed reports should be submitted through authenticated `POST /items`, not inserted directly, so the embedding is created before storage.
 - An existing `location_2dsphere` index from the previous backend must be deliberately removed during migration because it rejects the new non-GeoJSON location shape; see [README.md](README.md#existing-data). The current index is `location.coordinates` (2d).
 - The repository's tests use fake/mocked AI and database components by default. A live AI-service/Atlas end-to-end integration has not been established by this contract.
