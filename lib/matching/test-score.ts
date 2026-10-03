@@ -1,6 +1,6 @@
 // Scores the demo pair, an unrelated pair, and location/time edge cases. Needs no API key:
-// the cosine values are the ones test-embedding.ts printed. Run:  node test-score.ts
-import { contractScore, haversineMetres, locationScore, scoreMatch, type ScorableReport } from "./score.ts";
+// the cosine values are the ones test-embedding.ts printed. Run:  node lib/matching/test-score.ts
+import { haversineMetres, locationScore, scoreMatch, type ScorableReport } from "./score.ts";
 
 // Approximate DCU Glasnevin library position, [longitude, latitude]. Typed from memory, not
 // surveyed: replace with a pin from the map if you need exact figures.
@@ -10,24 +10,24 @@ const TRINITY: [number, number] = [-6.2573, 53.3438]; // ~4.6 km south, far away
 
 const lost: ScorableReport = {
   type: "lost", category: "Electronics",
-  location: { coordinates: LIBRARY },
+  location: { name: "DCU Library", coordinates: LIBRARY },
   eventDate: new Date("2026-10-03T12:35:00Z"),
 };
 const foundEarbuds: ScorableReport = {
   type: "found", category: "Electronics",
-  location: { coordinates: LIBRARY_ENTRANCE },
+  location: { name: "Library entrance", coordinates: LIBRARY_ENTRANCE },
   eventDate: new Date("2026-10-03T13:02:00Z"),
 };
 const foundUmbrella: ScorableReport = {
-  type: "found", category: "Other",
-  location: { coordinates: TRINITY },
+  type: "found", category: "Clothing & Accessories",
+  location: { name: "Lecture hall", coordinates: TRINITY },
   eventDate: new Date("2026-09-12T09:00:00Z"),
 };
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 function show(label: string, s: ReturnType<typeof scoreMatch>) {
   console.log(
-    `${pct(s.total).padStart(4)}  ${label}  (description ${pct(s.description)}, location ${pct(s.location)}, time ${pct(s.time)}, category ${pct(s.category)})  contract score ${contractScore(s)}`,
+    `${pct(s.total).padStart(4)}  ${label}  (description ${pct(s.description)}, location ${pct(s.location)}, time ${pct(s.time)}, category ${pct(s.category)})`,
   );
 }
 
@@ -38,11 +38,11 @@ show("AirPods lost vs umbrella found   ", scoreMatch(lost, foundUmbrella, 0.73))
 // Location cases. 200 m north of the library: 1 degree of latitude is ~111,195 m.
 const north200: [number, number] = [LIBRARY[0], LIBRARY[1] + 200 / 111_195];
 const cases: [string, ScorableReport["location"], ScorableReport["location"]][] = [
-  ["same spot", { coordinates: LIBRARY }, { coordinates: LIBRARY }],
-  ["200 m apart", { coordinates: LIBRARY }, { coordinates: north200 }],
-  ["far away", { coordinates: LIBRARY }, { coordinates: TRINITY }],
-  ["one side has no coords", { coordinates: LIBRARY }, {}],
-  ["neither has coords", {}, {}],
+  ["same spot", { name: "A", coordinates: LIBRARY }, { name: "B", coordinates: LIBRARY }],
+  ["200 m apart", { name: "A", coordinates: LIBRARY }, { name: "B", coordinates: north200 }],
+  ["far away", { name: "A", coordinates: LIBRARY }, { name: "B", coordinates: TRINITY }],
+  ["no coords (name fallback)", { name: "DCU Library" }, { name: "Library entrance" }],
+  ["one side has no coords", { name: "DCU Library", coordinates: LIBRARY }, { name: "Library entrance" }],
 ];
 console.log("\nLocation score");
 for (const [label, a, b] of cases) {

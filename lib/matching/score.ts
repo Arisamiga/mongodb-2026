@@ -1,5 +1,4 @@
 import {
-  type Category,
   DESCRIPTION_CEILING,
   DESCRIPTION_FLOOR,
   LOCATION_MAX_DISTANCE_METRES,
@@ -11,9 +10,9 @@ import {
 // The fields of a report that scoring needs. Matches the items document in the project plan.
 export interface ScorableReport {
   type: "lost" | "found";
-  category: Category;
-  // [longitude, latitude], the same order MongoDB GeoJSON and the backend use. No place name.
-  location: { coordinates?: [number, number] };
+  category: string;
+  // coordinates is optional: [longitude, latitude], the same order MongoDB GeoJSON uses.
+  location: { name: string; coordinates?: [number, number] };
   eventDate: Date;
 }
 
@@ -57,11 +56,26 @@ export function haversineMetres(a: [number, number], b: [number, number]): numbe
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
 }
 
-// 100% at 0 m, linearly down to 0% at LOCATION_MAX_DISTANCE_METRES. The backend contract only
-// has coordinates (no place names), so a report without them can't be placed and scores 0.
+// Uses real distance when both reports have coordinates: 100% at 0 m, linearly down to 0% at
+// LOCATION_MAX_DISTANCE_METRES. If either lacks coordinates (e.g. a typed-in place name),
+// falls back to word overlap between the names.
 export function locationScore(a: ScorableReport["location"], b: ScorableReport["location"]): number {
-  if (!a.coordinates || !b.coordinates) return 0;
-  return clamp01(1 - haversineMetres(a.coordinates, b.coordinates) / LOCATION_MAX_DISTANCE_METRES);
+  if (a.coordinates && b.coordinates) {
+    return clamp01(1 - haversineMetres(a.coordinates, b.coordinates) / LOCATION_MAX_DISTANCE_METRES);
+  }
+  return nameOverlapScore(a.name, b.name);
+}
+
+// Word overlap between location names, so "DCU Library" and "Library entrance" share "library".
+// Cheap and explainable, but it can't tell "lobby" from "entrance"; embedding the location
+// names would fix that at the cost of another API call per report.
+export function nameOverlapScore(a: string, b: string): number {
+  const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+  const wa = words(a), wb = words(b);
+  if (wa.size === 0 || wb.size === 0) return 0;
+  const shared = [...wa].filter((w) => wb.has(w)).length;
+  // Divide by the smaller set so a short name fully inside a longer one scores 1.
+  return shared / Math.min(wa.size, wb.size);
 }
 
 // Closer in time is more plausible, and an item can't be found before it was lost.
@@ -71,17 +85,8 @@ export function timeScore(lostDate: Date, foundDate: Date): number {
   return Math.pow(0.5, Math.max(0, hours) / TIME_HALF_LIFE_HOURS);
 }
 
-// Categories are a fixed list, so exact equality is enough.
-export function categoryScore(a: Category, b: Category): number {
-  return a === b ? 1 : 0;
-}
-
-// The score the backend's /matches response wants: a number from 0 to 1. scoreMatch's total is
-// already 0-1 (the weights add up to 1), so nothing is divided by 100 here; dividing again would
-// turn 0.92 into 0.0092 and nothing would ever reach the backend's 0.90 threshold. This only
-// clamps away floating-point drift and rounds to 4 places for a tidy JSON number.
-export function contractScore(score: MatchScore): number {
-  return Math.round(clamp01(score.total) * 10_000) / 10_000;
+export function categoryScore(a: string, b: string): number {
+  return a.trim().toLowerCase() === b.trim().toLowerCase() ? 1 : 0;
 }
 
 // Scores one lost report against one found report. The caller supplies the cosine similarity
