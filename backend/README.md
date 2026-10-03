@@ -4,48 +4,53 @@ FastAPI service for accounts, lost/found reports, matching, and private conversa
 
 ## Local setup
 
-Requirements: Python 3.12+, `uv`, Node.js 24+, npm, and MongoDB. For local development, MongoDB 8 is included in the Compose setup.
+Requirements: Docker Compose v2 for the stack, or Python 3.12+, `uv`, Node.js 24+, and npm for backend development. MongoDB 8 is included in the root Compose setup.
 
 ```sh
-cd backend
+# Run from the repository root.
 cp .env.example .env
 python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
-Put the generated value in `JWT_SECRET` in `.env` (at least 32 non-padding characters). Set `VOYAGE_API_KEY` to a private Voyage AI key; the matching service uses it to create embeddings. Keep `.env` private and do not commit secrets. The API and matching service use the same `MONGODB_URI` and `MONGODB_DATABASE`; `AI_SERVICE_TOKEN` is an optional shared bearer token between them. `JWT_SECRET` is required by the API but is not used by the matching service. Locations are submitted with each report, not configured in `.env`.
+Put the generated value in root `.env` as `JWT_SECRET` (at least 32 non-padding characters). `VOYAGE_API_KEY` is optional for startup and health checks, but is needed for embedding requests; set it to a private Voyage AI key to enable report matching. `AI_SERVICE_TOKEN` is optional. Keep `.env` private and do not commit secrets. The API and matching service share `MONGODB_URI` and `MONGODB_DATABASE`; `JWT_SECRET` is required by the API but is not used by the matching service. The root `.env.example` uses host-local defaults (`localhost` for MongoDB and `127.0.0.1` for the matching-service URL); Compose overrides the database hostname to `mongo` and the API's matching-service URL to `http://ai:8001`. Locations are submitted with each report, not configured in `.env`.
 
-Install the matching service dependencies from `backend`:
-
-```sh
-npm ci --prefix matching-service
-```
-
-For direct local development, run the matching service and API in separate terminals. The service reads `../.env`; override the Compose-only `ai` hostname for the host-run API:
+If you already have a `backend/.env`, move it to the repository root yourself before starting; preserve its values and do not overwrite an existing root `.env`. Install the matching service dependencies from its directory:
 
 ```sh
 cd backend/matching-service
-node --env-file=../.env index.ts
+npm ci
+```
+
+For direct local development, run the matching service and API in separate terminals. The matching service and API load the root `.env` themselves, including when started from their respective directories; no command-line env-file flag or host-only `AI_SERVICE_URL` override is needed. Start MongoDB separately (or run `docker compose up mongo` from the repository root):
+
+```sh
+cd backend/matching-service
+npm start
 ```
 
 ```sh
 cd backend
 uv sync
-AI_SERVICE_URL=http://127.0.0.1:8001 uv run uvicorn app.asgi:app --reload
+uv run uvicorn app.asgi:app --reload
 ```
 
 The interactive API reference is at `http://127.0.0.1:8000/docs`. The matching service listens on port 8001 and uses the saved report in MongoDB as the authoritative input to matching.
 
 ### Docker Compose
 
+Run Compose from the repository root after creating `.env` as described above:
+
 ```sh
+# Run from the repository root.
 docker compose up --build
 ```
 
-Compose starts MongoDB, the API, and the Node matching service on a shared private network. Both application containers use `mongodb://mongo:27017` and the configured database name; the matching service is not published as a host port. `AI_SERVICE_URL=http://ai:8001` resolves between the Compose services. Both containers load the private `.env`, including `VOYAGE_API_KEY` and, if set, `AI_SERVICE_TOKEN`. Mongo data persists in a named volume and only the API/Mongo ports are published on loopback. To use Atlas, deliberately configure both processes to use the same private URI. Never put a database URI in source control or documentation. Stop local services with `docker compose down`; named-volume data remains.
+The root Compose file starts the frontend, API, MongoDB, and Node matching service. The frontend is published at `http://localhost:3000`, the API at `http://localhost:8000`, and MongoDB at `localhost:27017`; all three host ports bind to loopback, while the matching service is private to the Compose network. Compose keeps the Dockerfiles with their services (`frontend/Dockerfile`, `backend/Dockerfile`, and `backend/matching-service/Dockerfile`); its build contexts are `frontend/`, `backend/`, and the repository root for the matching service. The API and matching containers receive the root `.env` (including private Voyage and optional service-token values), but the frontend does not receive backend secrets. Compose uses project name `backend` by default, preserving the prior `backend_mongo-data` volume. If the old stack was started with a custom project name, use that same name with `docker compose -p <project-name>` from the repository root to continue using its volume. Compose overrides the sample's host-local Mongo URI with `mongodb://mongo:27017` for both backend services and sets the API's matching URL to `http://ai:8001`. Mongo data persists in a named volume. To use Atlas, deliberately configure both backend processes to use the same private URI. Never put a database URI in source control or documentation. Stop services with `docker compose down`; this preserves the volume. Do not use `docker compose down -v` unless you intend to delete the stored MongoDB data.
 
 ## Tests and lint
 
 ```sh
+# Run from backend/.
 uv run pytest
 uv run ruff check .
 npm test --prefix matching-service

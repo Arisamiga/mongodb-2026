@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { MongoClient } from "mongodb";
 import { createMatchingServer } from "./server.ts";
 
 export async function start(): Promise<void> {
-  if (existsSync(".env")) process.loadEnvFile(".env");
+  const envFile = fileURLToPath(new URL("../../.env", import.meta.url));
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
 
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI is required");
