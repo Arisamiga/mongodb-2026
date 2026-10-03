@@ -1,5 +1,5 @@
 import Link from "next/link";
-import {ArrowUpRight, HandHeart, PackageX, ShieldCheck} from "lucide-react";
+import {ArrowRight, HandHeart, PackageX, ShieldCheck} from "lucide-react";
 
 export default function Home() {
     return (
@@ -19,16 +19,20 @@ export default function Home() {
             </p>
             <div className="home-actions">
                 <Link href="/report?type=LOST" className="home-action lost-action">
-                    <PackageX size={32} />
+                    <span className="action-icon"><PackageX size={30} /></span>
                     <strong>Lost</strong>
                     <span>Report something you’ve lost.</span>
-                    <ArrowUpRight size={24} className="action-arrow" />
+                    <span className="action-cta">
+                        Report lost item <ArrowRight size={16} className="action-arrow" />
+                    </span>
                 </Link>
                 <Link href="/report?type=FOUND" className="home-action found-action">
-                    <HandHeart size={32} />
+                    <span className="action-icon"><HandHeart size={30} /></span>
                     <strong>Found</strong>
                     <span>Report something you’ve found.</span>
-                    <ArrowUpRight size={24} className="action-arrow" />
+                    <span className="action-cta">
+                        Report found item <ArrowRight size={16} className="action-arrow" />
+                    </span>
                 </Link>
             </div>
             <div className="hero-note">
