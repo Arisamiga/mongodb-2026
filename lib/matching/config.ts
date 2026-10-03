@@ -24,7 +24,11 @@ export const DESCRIPTION_CEILING = 0.9;
 // Time score halves every this many hours between the loss and the find.
 export const TIME_HALF_LIFE_HOURS = 24;
 // A found report dated slightly before the lost one is allowed (clocks and memory are fuzzy).
-export const TIME_TOLERANCE_HOURS = 1;
+export const TIME_TOLERANCE_HOURS = 3;
+
+// Location score is 100% at 0 m and falls linearly to 0% at this distance. 500 m is roughly
+// "the other side of a campus"; a different building is already well below 100%.
+export const LOCATION_MAX_DISTANCE_METRES = 500;
 
 // The name of the env var holding the key, not the key itself. The key lives in .env (gitignored).
 export const API_KEY_ENV_VAR = "VOYAGE_API_KEY";

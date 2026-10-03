@@ -1,6 +1,7 @@
 import {
   DESCRIPTION_CEILING,
   DESCRIPTION_FLOOR,
+  LOCATION_MAX_DISTANCE_METRES,
   TIME_HALF_LIFE_HOURS,
   TIME_TOLERANCE_HOURS,
   WEIGHTS,
@@ -10,7 +11,8 @@ import {
 export interface ScorableReport {
   type: "lost" | "found";
   category: string;
-  location: { name: string };
+  // coordinates is optional: [longitude, latitude], the same order MongoDB GeoJSON uses.
+  location: { name: string; coordinates?: [number, number] };
   eventDate: Date;
 }
 
@@ -41,10 +43,33 @@ export function descriptionScore(cosine: number): number {
   return clamp01((cosine - DESCRIPTION_FLOOR) / (DESCRIPTION_CEILING - DESCRIPTION_FLOOR));
 }
 
+// Great-circle distance in metres between two [longitude, latitude] points (haversine).
+// Accurate to well under a metre per kilometre at campus scale, which is all we need.
+export function haversineMetres(a: [number, number], b: [number, number]): number {
+  const EARTH_RADIUS_M = 6_371_000;
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const [lng1, lat1] = a;
+  const [lng2, lat2] = b;
+  const h =
+    Math.sin(rad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
+}
+
+// Uses real distance when both reports have coordinates: 100% at 0 m, linearly down to 0% at
+// LOCATION_MAX_DISTANCE_METRES. If either lacks coordinates (e.g. a typed-in place name),
+// falls back to word overlap between the names.
+export function locationScore(a: ScorableReport["location"], b: ScorableReport["location"]): number {
+  if (a.coordinates && b.coordinates) {
+    return clamp01(1 - haversineMetres(a.coordinates, b.coordinates) / LOCATION_MAX_DISTANCE_METRES);
+  }
+  return nameOverlapScore(a.name, b.name);
+}
+
 // Word overlap between location names, so "DCU Library" and "Library entrance" share "library".
 // Cheap and explainable, but it can't tell "lobby" from "entrance"; embedding the location
 // names would fix that at the cost of another API call per report.
-export function locationScore(a: string, b: string): number {
+export function nameOverlapScore(a: string, b: string): number {
   const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]+/g) ?? []);
   const wa = words(a), wb = words(b);
   if (wa.size === 0 || wb.size === 0) return 0;
@@ -72,7 +97,7 @@ export function scoreMatch(
   cosine: number,
 ): MatchScore {
   const description = descriptionScore(cosine);
-  const location = locationScore(lost.location.name, found.location.name);
+  const location = locationScore(lost.location, found.location);
   const time = timeScore(lost.eventDate, found.eventDate);
   const category = categoryScore(lost.category, found.category);
   const total =
