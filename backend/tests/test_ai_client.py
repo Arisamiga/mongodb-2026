@@ -29,7 +29,7 @@ def report(item_id="lost-1"):
         "title": "Blue bag",
         "description": "Left at the library",
         "category": "Bags",
-        "location": {"name": "Library", "coordinates": [-0.12, 51.5]},
+        "location": {"coordinates": [-0.12, 51.5]},
         "eventDate": datetime(2026, 10, 3, 12, 30, tzinfo=timezone.utc),
         "createdAt": datetime(2026, 10, 3, 13, tzinfo=timezone.utc),
         "status": "open",

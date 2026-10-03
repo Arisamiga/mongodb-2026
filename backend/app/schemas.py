@@ -44,9 +44,8 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
-class CampusLocation(InputModel):
-    name: str = Field(min_length=1, max_length=100)
-    coordinates: tuple[float, float]
+class Location(InputModel):
+    coordinates: tuple[Annotated[float, Field(strict=True)], Annotated[float, Field(strict=True)]]
 
     @field_validator("coordinates")
     @classmethod
@@ -63,7 +62,7 @@ class ItemCreate(InputModel):
     description: str = Field(min_length=1, max_length=2000)
     category: Category
     attributes: dict[str, str] = Field(default_factory=dict, max_length=30)
-    location: str = Field(min_length=1, max_length=100)
+    location: Location
     eventDate: datetime
 
     @field_validator("eventDate", mode="before")
@@ -108,7 +107,7 @@ class ItemOut(BaseModel):
     category: Category
     attributes: dict[str, str] = Field(default_factory=dict)
     images: list[str] = Field(default_factory=list)
-    location: CampusLocation
+    location: Location
     status: ReportStatus
     matchingStatus: Literal["pending", "completed", "failed"] = "pending"
     eventDate: datetime
