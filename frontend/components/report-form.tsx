@@ -2,8 +2,6 @@
 import {useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {
-    PackageX,
-    HandHeart,
     ArrowRight,
     LoaderCircle,
     ShieldCheck,
@@ -15,9 +13,11 @@ import {saveItem} from "@/lib/store";
 import {LocationInput} from "@/components/location-input";
 export function ReportForm() {
     const params = useSearchParams();
-    const [type, setType] = useState(
-        params.get("type") === "FOUND" ? "FOUND" : "LOST",
-    );
+    const type = params.get("type") === "FOUND" ? "FOUND" : "LOST";
+    return <ReportDetails key={type} type={type} />;
+}
+
+function ReportDetails({type}: {type: "LOST" | "FOUND"}) {
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -30,7 +30,7 @@ export function ReportForm() {
         try {
             saveItem({
                 title: payload.title,
-                type: type as "LOST" | "FOUND",
+                type,
                 category: payload.category as (typeof categories)[number],
                 description: payload.description,
                 location: payload.location,
@@ -59,44 +59,6 @@ export function ReportForm() {
     return (
         <form onSubmit={submit} className="report-form">
             <fieldset disabled={busy}>
-                <legend className="field-heading">
-                    First, what brings you here?
-                </legend>
-                <div className="type-picker">
-                    {[
-                        [
-                            "LOST",
-                            PackageX,
-                            "I lost something",
-                            "Let’s help you find it.",
-                        ],
-                        [
-                            "FOUND",
-                            HandHeart,
-                            "I found something",
-                            "Let’s get it home.",
-                        ],
-                    ].map(([value, Icon, title, copy]) => {
-                        const I = Icon as typeof PackageX;
-                        return (
-                            <button
-                                key={String(value)}
-                                type="button"
-                                className={`${String(value).toLowerCase()} ${type === value ? "chosen" : ""}`}
-                                aria-pressed={type === value}
-                                onClick={() => setType(String(value))}
-                            >
-                                <I size={23} />
-                                <span>
-                                    <strong>{String(title)}</strong>
-                                    <small>{String(copy)}</small>
-                                </span>
-                                <i />
-                            </button>
-                        );
-                    })}
-                </div>
-                <div className="form-divider" />
                 <h2>The little details matter.</h2>
                 <p className="form-intro">
                     Add the details you want to keep with this report. All

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {MessageCircle, X} from "lucide-react";
+import {HandHeart, MessageCircle, PackageX, X} from "lucide-react";
 import {useState} from "react";
 import {Brand} from "@/components/brand";
 
@@ -14,13 +14,16 @@ export function Nav() {
                 <Link href="/" className="brand" aria-label="Boomerang home">
                     <Brand />
                 </Link>
-                <div className="nav-actions" aria-label="Report an item or open chat">
+                <nav className="nav-actions" aria-label="Report an item">
                     <Link href="/report?type=LOST" className="button report-lost nav-action">
+                        <PackageX size={18} aria-hidden="true" />
                         Lost
                     </Link>
                     <Link href="/report?type=FOUND" className="button report-found nav-action">
+                        <HandHeart size={18} aria-hidden="true" />
                         Found
                     </Link>
+                </nav>
                     <button
                         type="button"
                         className="button chat-trigger nav-action"
@@ -31,7 +34,6 @@ export function Nav() {
                         <MessageCircle size={16} />
                         Chat
                     </button>
-                </div>
             </div>
             {chatOpen && (
                 <aside className="demo-chat" id="demo-chat-panel" aria-label="Demo chat">
